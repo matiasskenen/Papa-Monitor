@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Papa Monitor</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="min-h-screen bg-neutral-900 flex items-center justify-center p-6">
+
+  <div class="w-full max-w-[560px] rounded-2xl overflow-hidden bg-white shadow-2xl border border-neutral-200">
+    
+    <!-- Header -->
+    <div class="bg-blue-600 px-6 py-5 text-center">
+      <h1 class="text-white text-2xl font-bold tracking-wide">PAPA MONITOR</h1>
+      <p class="text-blue-100 text-sm mt-1">Panel de control del monitor</p>
+    </div>
+
+    <!-- Body -->
+    <div class="p-5 space-y-4">
+      
+      <section class="rounded-xl border border-neutral-200 p-4 bg-neutral-50">
+        <p class="text-sm font-semibold text-neutral-700 mb-3">Actualización del monitor (.exe)</p>
+
+        <div class="rounded-lg bg-green-100 border border-green-200 px-4 py-3 text-sm text-green-800">
+          Monitor actualizado (v1.0.0). La versión publicada es v1.0.0.
+        </div>
+      </section>
+
+      <div class="space-y-3">
+        <button class="w-full rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 transition">
+          Actualizar / reparar tarea programada
+        </button>
+
+        <button class="w-full rounded-xl bg-green-600 hover:bg-green-700 text-white font-semibold py-3 transition">
+          Comprobar actualización del monitor ahora
+        </button>
+
+        <button class="w-full rounded-xl bg-red-600 hover:bg-red-700 text-white font-semibold py-3 transition">
+          Desinstalar tarea y salir
+        </button>
+      </div>
+
+      <label class="flex items-center gap-2 text-sm text-neutral-700">
+        <input id="toggleConsole" type="checkbox" class="h-4 w-4">
+        Mostrar consola de actividad
+      </label>
+
+      <div class="text-xs text-neutral-500 leading-relaxed">
+        La X y el minimizar ocultan este panel. El monitor sigue en la bandeja.
+      </div>
+
+      <!-- Consola -->
+      <section id="consoleBox" class="hidden rounded-xl overflow-hidden border border-neutral-800">
+        <div class="bg-neutral-900 text-neutral-100 text-xs px-4 py-2 font-semibold">
+          CONSOLA DEL MONITOR
+        </div>
+        <pre class="bg-black text-green-400 text-sm p-4 h-56 overflow-y-auto">[12:20:01] Iniciando monitor...
+[12:20:03] API cargada correctamente...
+[12:20:06] Fortnite detectado...</pre>
+      </section>
+    </div>
+
+    <!-- Footer -->
+    <div class="bg-neutral-100 border-t border-neutral-200 p-3 space-y-2">
+      <button class="w-full rounded-lg bg-neutral-200 hover:bg-neutral-300 text-neutral-800 py-2 font-medium transition">
+        Ocultar panel (sigue en bandeja)
+      </button>
+
+      <button class="w-full rounded-lg bg-red-700 hover:bg-red-800 text-white py-2 font-medium transition">
+        Cerrar monitor por completo
+      </button>
+    </div>
+  </div>
+
+  <script src="./app.js"></script>
+</body>
+</html>

@@ -40,7 +40,7 @@ def handle_status():
                     if emails_allowed and RESEND_API_KEY:
                         Emails.send({
                             "from": "FortniteTracker <onboarding@resend.dev>",
-                            "to": ["tu-mail@gmail.com"], # <--- PONÉ TU MAIL
+                            "to": ["matias.skenen@gmail.com"], # <--- PONÉ TU MAIL
                             "subject": "⚠️ PAPÁ ONLINE",
                             "html": "<strong>El viejo entró al Fortnite ahora.</strong>"
                         }, api_key=RESEND_API_KEY)

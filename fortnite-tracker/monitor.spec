@@ -5,7 +5,7 @@ a = Analysis(
     ['monitor.py'],
     pathex=[],
     binaries=[],
-    datas=[('logo.png', '.'), ('papamonitor', 'papamonitor')],
+    datas=[('logo.png', '.'), ('public/version.txt', '.'), ('papamonitor', 'papamonitor')],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},

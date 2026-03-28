@@ -1,25 +1,14 @@
-import psutil
-import requests
-import time
+import psutil, requests, time
 
-API_URL = "https://papa-monitor.vercel.app/api/status"
-PROCESS_NAME = "FortniteClient-Win64-Shipping.exe"
+API_URL = "https://papa-monitor.vercel.app/api/status" # <--- TU URL
+PROCESS = "FortniteClient-Win64-Shipping.exe"
 
-def is_running():
-    for proc in psutil.process_iter(['name']):
-        try:
-            if proc.info['name'] == PROCESS_NAME:
-                return True
-        except: continue
-    return False
-
-print("Monitor 100% Certero Iniciado...")
+print("Monitor 100% Certero en marcha...")
 while True:
-    online = is_running()
+    running = any(p.info['name'] == PROCESS for p in psutil.process_iter(['name']))
     try:
-        r = requests.post(API_URL, json={"is_online": online}, timeout=10)
-        print(f"Reporte enviado: {'ONLINE' if online else 'OFFLINE'} | Server: {r.status_code}")
+        r = requests.post(API_URL, json={"is_online": running}, timeout=10)
+        print(f"Reporte: {'ONLINE' if running else 'OFFLINE'} | Server: {r.status_code}")
     except Exception as e:
-        print(f"Error: {e}")
-    
-    time.sleep(60) # Chequeo cada 1 minuto
+        print(f"Error de red: {e}")
+    time.sleep(60)

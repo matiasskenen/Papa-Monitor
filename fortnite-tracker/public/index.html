@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Fortnite Status Dashboard</title>
+    <style>
+        body { font-family: sans-serif; background: #121212; color: white; text-align: center; }
+        .card { background: #1e1e1e; padding: 20px; margin: 20px auto; width: 80%; border-radius: 10px; }
+        .status-on { color: #00ff00; }
+        .status-off { color: #ff4444; }
+    </style>
+</head>
+<body>
+    <h1>Tracker de Papá</h1>
+    <div id="status" class="card">Cargando estado...</div>
+    <h2>Historial de Sesiones</h2>
+    <div id="history" class="card"></div>
+
+    <script>
+        async function loadData() {
+            // Acá deberías hacer un fetch a otro endpoint de tu API que haga:
+            // supabase.table("sessions").select("*").order("start_time", {ascending: false})
+            // Por brevedad, este es el placeholder para los datos.
+        }
+        loadData();
+    </script>
+</body>
+</html>

@@ -50,12 +50,12 @@ class PapaMonitorApp:
         self.console_visible = tk.BooleanVar(value=False)
         self._console_container: tk.Frame | None = None
         self._tarea_instalada_al_inicio = scheduler.tarea_existe()
-        if self._tarea_instalada_al_inicio:
-            self.console_visible.set(True)
-        self.root.geometry("520x680" if self._tarea_instalada_al_inicio else "520x360")
+        self._unmap_guard = False
+        self.root.geometry("520x560" if self._tarea_instalada_al_inicio else "520x360")
 
         self._setup_ui()
         self.root.protocol("WM_DELETE_WINDOW", self.ocultar_panel)
+        self.root.bind("<Unmap>", self._al_minimizar_ir_a_bandeja)
         self.icon = iniciar_tray(self.img_logo, self.lanzar_panel, self.salir_total)
 
         threading.Thread(target=self._monitor_loop, daemon=True).start()
@@ -133,6 +133,7 @@ class PapaMonitorApp:
             self.root.update_idletasks()
         else:
             self._console_container.pack_forget()
+        self._ajustar_tamano_ventana()
 
     def toggle_consola(self) -> None:
         self.console_visible.set(not self.console_visible.get())
@@ -226,7 +227,9 @@ class PapaMonitorApp:
         ).pack(anchor="w")
 
         hint = (
-            "El monitor sigue en la bandeja. Los patrones de proceso se cargan del servidor (public-config)."
+            "La X y el minimizar ocultan este panel (el monitor sigue en la bandeja). "
+            "La consola está oculta hasta que marques la casilla. "
+            "Patrones: public-config."
         )
         tk.Label(self.body, text=hint, bg="#ffffff", fg="#666", font=("Segoe UI", 8), wraplength=480, justify="left").pack(
             anchor="w", pady=(6, 0)
@@ -234,18 +237,56 @@ class PapaMonitorApp:
 
     def lanzar_panel(self) -> None:
         self.dibujar_botones()
-        if self._puede_mostrar_consola():
-            self.root.geometry("520x680")
-            self._toggle_consola_vista()
-        else:
-            self.root.geometry("520x360")
-            if self._console_container:
-                self._console_container.pack_forget()
+        self._sincronizar_panel_consola()
         self.root.deiconify()
         self.root.lift()
 
+    def _clear_unmap_guard(self) -> None:
+        self._unmap_guard = False
+
     def ocultar_panel(self) -> None:
-        self.root.withdraw()
+        self._unmap_guard = True
+        try:
+            self.root.withdraw()
+        finally:
+            self.root.after(200, self._clear_unmap_guard)
+
+    def _al_minimizar_ir_a_bandeja(self, event: tk.Event) -> None:
+        """Botón minimizar de Windows: no dejar el proceso colgado minimizado; ir a bandeja."""
+        if getattr(event, "widget", None) != self.root:
+            return
+        if self._unmap_guard:
+            return
+        try:
+            if self.root.state() == "iconic":
+                self._unmap_guard = True
+                self.root.after(10, self._completar_minimizar_bandeja)
+        except tk.TclError:
+            pass
+
+    def _completar_minimizar_bandeja(self) -> None:
+        try:
+            self.root.withdraw()
+        except tk.TclError:
+            pass
+        finally:
+            self._unmap_guard = False
+
+    def _ajustar_tamano_ventana(self) -> None:
+        if not scheduler.tarea_existe():
+            self.root.geometry("520x360")
+            return
+        if self.console_visible.get() and self._puede_mostrar_consola():
+            self.root.geometry("520x720")
+        else:
+            self.root.geometry("520x560")
+
+    def _sincronizar_panel_consola(self) -> None:
+        if self._console_container:
+            self._console_container.pack_forget()
+        if self._puede_mostrar_consola() and self.console_visible.get():
+            self._console_container.pack(fill="both", expand=True, padx=16, pady=(0, 8))
+        self._ajustar_tamano_ventana()
 
     def confirmar_cerrar_monitor(self) -> None:
         if messagebox.askyesno(
@@ -361,20 +402,16 @@ class PapaMonitorApp:
                 "La tarea de inicio con Windows ya está configurada.\n"
                 "Usá «Actualizar / reparar» o «Desinstalar» si la necesitás cambiar.",
             )
-            self.console_visible.set(True)
             self.dibujar_botones()
-            self.root.geometry("520x680")
-            self._toggle_consola_vista()
+            self._sincronizar_panel_consola()
             return
         ok, msg = scheduler.crear_tarea_inicio()
         if ok:
-            self.console_visible.set(True)
             self.dibujar_botones()
-            self._toggle_consola_vista()
+            self._sincronizar_panel_consola()
             self.log("Tarea programada creada (inicio con Windows).")
             self.log(f"API: {self.api_url} | sondeo: {self.poll_interval}s | patrones: {', '.join(self.patterns)}")
             messagebox.showinfo("Listo", "Instalación de inicio automático correcta.")
-            self.root.geometry("520x680")
         else:
             if self._puede_mostrar_consola():
                 self.log(f"Error al crear tarea: {msg}")
@@ -388,6 +425,7 @@ class PapaMonitorApp:
             self.log("Tarea reprogramada correctamente.")
             messagebox.showinfo("Listo", "Tarea actualizada / reparada.")
             self.dibujar_botones()
+            self._sincronizar_panel_consola()
         else:
             self.log(f"Error al reprogramar: {msg}")
 

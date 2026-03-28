@@ -2,58 +2,255 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Papa Monitor</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PapaMonitor - Squad Ready</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@700;900&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
     <style>
-        body { font-family: sans-serif; background: #0a0a0a; color: white; text-align: center; padding: 20px; }
-        .card { background: #151515; padding: 20px; border-radius: 12px; margin: 15px auto; max-width: 600px; }
-        .status-badge { padding: 8px 15px; border-radius: 20px; font-weight: bold; cursor: pointer; border: none; }
-        .online { background: #00ff88; color: black; box-shadow: 0 0 10px #00ff88; }
-        .offline { background: #444; color: #aaa; }
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-        th, td { padding: 10px; border-bottom: 1px dotted #333; font-size: 0.85em; }
+        :root {
+            --fn-purple: #a722ff;
+            --fn-blue: #00bbff;
+            --fn-yellow: #fef102;
+            --fn-dark: #050114;
+            --fn-rare: #0078f2;
+            --fn-epic: #b233ff;
+            --fn-legendary: #f17e21;
+            --text: #ffffff;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--fn-dark);
+            background-image: 
+                linear-gradient(rgba(5, 1, 20, 0.8), rgba(5, 1, 20, 0.8)),
+                url('https://images.unsplash.com/photo-1589241062272-c0a000072dfa?q=80&w=1920&auto=format&fit=crop');
+            background-attachment: fixed;
+            background-size: cover;
+            color: var(--text);
+            overflow-x: hidden;
+        }
+
+        .container { max-width: 1100px; margin: 0 auto; padding: 0 1.5rem; }
+
+        /* Navbar */
+        nav {
+            padding: 10px 0;
+            background: rgba(0, 0, 0, 0.9);
+            border-bottom: 4px solid var(--fn-yellow);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .nav-content { display: flex; justify-content: space-between; align-items: center; }
+
+        .logo {
+            font-family: 'Bebas Neue', cursive;
+            font-size: 2.8rem;
+            color: #fff;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            text-shadow: 3px 3px 0px var(--fn-purple);
+            text-decoration: none;
+            font-style: italic;
+        }
+
+        .btn-download-sm {
+            background: var(--fn-yellow);
+            color: #000;
+            padding: 5px 20px;
+            font-family: 'Bebas Neue', cursive;
+            font-size: 1.5rem;
+            text-transform: uppercase;
+            text-decoration: none;
+            clip-path: polygon(10% 0, 100% 0, 90% 100%, 0 100%);
+            transition: 0.2s;
+            font-weight: bold;
+        }
+
+        /* Victory Banner */
+        .victory-banner {
+            background: linear-gradient(90deg, transparent 0%, rgba(254, 241, 2, 0.9) 20%, rgba(254, 241, 2, 0.9) 80%, transparent 100%);
+            padding: 15px 0;
+            margin-bottom: 20px;
+            transform: skewX(-15deg);
+            position: relative;
+            box-shadow: 0 0 30px rgba(254, 241, 2, 0.4);
+        }
+
+        .victory-text {
+            font-family: 'Bebas Neue', cursive;
+            color: #000;
+            font-size: 5rem;
+            text-transform: uppercase;
+            text-align: center;
+            transform: skewX(15deg);
+            letter-spacing: 2px;
+            line-height: 0.9;
+        }
+
+        /* Hero */
+        .hero { padding: 80px 0 60px; text-align: center; }
+
+        .hero h1 {
+            font-family: 'Bebas Neue', cursive;
+            font-size: clamp(3.5rem, 8vw, 6.5rem);
+            line-height: 0.9;
+            color: #fff;
+            text-transform: uppercase;
+            font-style: italic;
+            text-shadow: -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000, 6px 6px 0px var(--fn-purple);
+            margin-top: -10px;
+        }
+
+        .hero p {
+            font-family: 'Bebas Neue', cursive;
+            font-size: 1.8rem;
+            margin-bottom: 40px;
+            color: var(--fn-blue);
+            background: rgba(0, 0, 0, 0.6);
+            display: inline-block;
+            padding: 5px 20px;
+            transform: rotate(-1deg);
+        }
+
+        .btn-main {
+            background: var(--fn-yellow);
+            color: #000;
+            padding: 15px 60px;
+            font-family: 'Bebas Neue', cursive;
+            font-size: 2.8rem;
+            text-transform: uppercase;
+            text-decoration: none;
+            display: inline-block;
+            clip-path: polygon(8% 0, 100% 0, 92% 100%, 0 100%);
+            box-shadow: 0 10px 0 #b1a801;
+            transition: 0.1s;
+            font-style: italic;
+        }
+
+        .btn-main:active { transform: translateY(6px); box-shadow: 0 4px 0 #b1a801; }
+
+        /* Rarity Cards */
+        .features {
+            padding: 40px 0;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .card {
+            background: rgba(0, 0, 0, 0.7);
+            border-top: 6px solid var(--border-color);
+            padding: 30px;
+            position: relative;
+            clip-path: polygon(0 0, 100% 0, 100% 90%, 90% 100%, 0 100%);
+            transition: 0.3s;
+        }
+
+        .card.rare { --border-color: var(--fn-rare); }
+        .card.epic { --border-color: var(--fn-epic); }
+        .card.legendary { --border-color: var(--fn-legendary); }
+
+        .card h3 { font-family: 'Bebas Neue', cursive; font-size: 2.2rem; color: #fff; }
+        .card .category { font-family: 'Bebas Neue'; color: var(--border-color); text-transform: uppercase; margin-bottom: 15px; display: block; }
+
+        /* How it works */
+        .how {
+            background: linear-gradient(180deg, var(--fn-purple), #4a148c);
+            padding: 40px;
+            margin: 40px 0;
+            border-radius: 10px;
+        }
+
+        .how h2 { font-family: 'Bebas Neue'; text-align: center; font-size: 3.5rem; color: var(--fn-yellow); text-shadow: 3px 3px 0 #000; margin-bottom: 30px; }
+
+        .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; }
+        .step-item { background: rgba(0,0,0,0.4); padding: 20px; text-align: center; }
+        .step-num { font-family: 'Bebas Neue'; font-size: 3rem; color: #fff; }
+
+        footer { text-align: center; padding: 40px 0; font-family: 'Bebas Neue'; font-size: 1.4rem; color: #666; }
+
+        @media (max-width: 768px) {
+            .steps { grid-template-columns: 1fr; }
+            .victory-text { font-size: 3rem; }
+        }
     </style>
 </head>
 <body>
-    <h1>Tracker de Papá</h1>
-    <div class="card">
-        <span id="badge" class="status-badge offline">VERIFICANDO...</span>
-    </div>
-    <div class="card">
-        <span>Alertas Email: </span>
-        <button id="mail-btn" onclick="toggleMail()" class="status-badge offline">...</button>
-    </div>
-    <div class="card">
-        <table>
-            <thead><tr><th>Inicio</th><th>Fin</th><th>Duración</th></tr></thead>
-            <tbody id="rows"></tbody>
-        </table>
-    </div>
+
+    <nav>
+        <div class="container nav-content">
+            <a href="/" class="logo">PapaMonitor</a>
+            <a href="/monitor.exe" download class="btn-download-sm">Download</a>
+        </div>
+    </nav>
+
+    <main class="container">
+        <section class="hero">
+            <div class="victory-banner">
+                <h2 class="victory-text">Victory Royale</h2>
+            </div>
+            <h1>Asegurá tu Squad</h1>
+            <p>Alertas de mail instantáneas al entrar al lobby</p>
+            <br>
+            <!-- El archivo debe estar en /public/monitor.exe -->
+            <a href="/monitor.exe" download class="btn-main">¡Descargar Ahora!</a>
+            <div id="version-tag" style="display:block; margin-top:20px; font-family:'Bebas Neue'; color: var(--fn-blue);">Season Alpha: v1.0.0</div>
+        </section>
+
+        <section class="features">
+            <div class="card rare">
+                <span class="category">Objeto Raro</span>
+                <h3>Modo Stealth</h3>
+                <p>Funciona en segundo plano sin afectar tus FPS.</p>
+            </div>
+            <div class="card epic">
+                <span class="category">Objeto Épico</span>
+                <h3>Auto-Arranque</h3>
+                <p>Inicia con el sistema. Siempre listo para el bus.</p>
+            </div>
+            <div class="card legendary">
+                <span class="category">Objeto Legendario</span>
+                <h3>Mail Bot</h3>
+                <p>Aviso al mail al segundo de iniciar el juego.</p>
+            </div>
+        </section>
+
+        <section class="how">
+            <h2>Mapa de Misión</h2>
+            <div class="steps">
+                <div class="step-item"><div class="step-num">01</div><p style="font-family:'Bebas Neue';">Lootear App</p></div>
+                <div class="step-item"><div class="step-num">02</div><p style="font-family:'Bebas Neue';">Equipar Monitor</p></div>
+                <div class="step-item"><div class="step-num">03</div><p style="font-family:'Bebas Neue';">Dominar Mapa</p></div>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>© 2026 PapaMonitor | Battle Royale Edition</p>
+        <p><a href="/dashboard" style="color: #444; text-decoration: none;">Acceder al Dashboard de Monitoreo</a></p>
+    </footer>
+
     <script>
-        async function load() {
-            const r = await fetch('/api/status');
-            const data = await r.json();
-            const badge = document.getElementById('badge');
-            badge.innerText = (data.length > 0 && data[0].is_active) ? "JUGANDO AHORA" : "OFFLINE";
-            badge.className = (data.length > 0 && data[0].is_active) ? "status-badge online" : "status-badge offline";
-            document.getElementById('rows').innerHTML = data.map(s => `
-                <tr><td>${new Date(s.start_time).toLocaleString()}</td>
-                <td>${s.end_time ? new Date(s.end_time).toLocaleString() : '---'}</td>
-                <td>${s.duration_minutes || 0} min</td></tr>`).join('');
-            
-            const c = await fetch('/api/config');
-            const conf = await c.json();
-            const btn = document.getElementById('mail-btn');
-            btn.innerText = conf.value ? "ACTIVADAS" : "DESACTIVADAS";
-            btn.style.background = conf.value ? "#2ecc71" : "#e74c3c";
+        async function fetchVersion() {
+            const el = document.getElementById('version-tag');
+            try {
+                // Busca el archivo version.txt en la raíz pública
+                const res = await fetch('/version.txt');
+                if (res.ok) {
+                    const text = await res.text();
+                    el.innerText = `Update Actual: v${text.trim()}`;
+                }
+            } catch (e) {
+                console.log("Error buscando versión");
+            }
         }
-        async function toggleMail() {
-            const btn = document.getElementById('mail-btn');
-            const status = btn.innerText === "ACTIVADAS";
-            await fetch('/api/config', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({enabled: !status}) });
-            load();
-        }
-        load();
-        setInterval(load, 30000);
+        document.addEventListener('DOMContentLoaded', fetchVersion);
     </script>
 </body>
 </html>

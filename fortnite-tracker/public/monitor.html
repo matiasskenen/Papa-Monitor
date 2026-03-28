@@ -33,10 +33,13 @@
         /* Main Content */
         .main { flex: 1; display: flex; flex-direction: column; overflow-y: auto; background: url('https://www.transparenttextures.com/patterns/carbon-fibre.png'); }
         .top-bar {
-            background: rgba(0,0,0,0.85); padding: 15px 40px; border-bottom: 3px solid var(--fn-yellow);
+            background: rgba(0,0,0,0.85); padding: 10px 28px; border-bottom: 2px solid rgba(254, 241, 2, 0.5);
             display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 10;
         }
-        .valencia-time { font-family: 'Bebas Neue'; font-size: 3rem; color: var(--fn-yellow); text-shadow: 0 0 15px rgba(254, 241, 2, 0.4); line-height: 1; }
+        .top-bar .tz-label { font-family: 'Inter', sans-serif; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.12em; color: #9ca3af; }
+        .top-bar .tz-place { font-family: 'Inter', sans-serif; font-size: 0.95rem; color: var(--fn-blue); font-weight: 600; }
+        .valencia-time { font-family: 'Inter', sans-serif; font-size: 1.35rem; font-weight: 600; color: var(--fn-yellow); font-variant-numeric: tabular-nums; line-height: 1.2; }
+        .clock-sub { font-size: 0.65rem; letter-spacing: 0.15em; opacity: 0.55; text-align: right; margin-top: 2px; }
         
         .content-section { padding: 40px; display: none; max-width: 900px; margin: 0 auto; width: 100%; }
         .content-section.active { display: block; animation: fadeIn 0.3s ease; }
@@ -49,30 +52,22 @@
             border: 2px solid var(--fn-blue); text-align: center; margin-bottom: 30px;
             box-shadow: 0 10px 40px rgba(0, 187, 255, 0.2);
         }
-        .status-badge { font-family: 'Bebas Neue'; font-size: 6rem; line-height: 1; margin-bottom: 10px; }
+        .status-badge { font-family: 'Bebas Neue'; font-size: 3.25rem; line-height: 1; margin-bottom: 8px; }
         .online { color: #00ff88; text-shadow: 0 0 25px #00ff88; }
         .offline { color: #ff3366; text-shadow: 0 0 25px #ff3366; }
 
-        /* Sección Desconexión Individual */
-        .time-comparison {
-            display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 30px;
+        .offline-hint { margin-top: 12px; font-family: 'Inter', sans-serif; font-size: 0.85rem; color: #9ca3af; text-align: center; }
+        .last-sessions-block { margin-top: 28px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.1); }
+        .section-title { font-family: 'Inter', sans-serif; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.14em; color: #9ca3af; margin-bottom: 12px; }
+        .session-strip { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px; }
+        .session-strip li {
+            font-family: 'Inter', sans-serif; font-size: 0.82rem; padding: 12px 14px; border-radius: 8px;
+            background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.08); color: #e5e5e5;
+            display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;
         }
-        .time-box {
-            background: rgba(255,255,255,0.07); padding: 25px; border-radius: 10px;
-            text-align: center; font-family: 'Bebas Neue'; position: relative; overflow: hidden;
-        }
-        
-        /* Estilos específicos por país */
-        .box-ar { border-bottom: 4px solid var(--fn-blue); }
-        .box-es { border-bottom: 4px solid var(--es-red); }
-
-        .time-box span { display: block; font-size: 3rem; margin-top: 5px; line-height: 1; }
-        .country-header { display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 1.3rem; color: #aaa; }
-        .flag { font-size: 1.5rem; }
-
-        /* Colores de hora */
-        .time-ar { color: var(--fn-blue); text-shadow: 0 0 10px rgba(0, 187, 255, 0.5); }
-        .time-es { color: var(--es-yellow); text-shadow: 0 0 10px rgba(255, 196, 0, 0.5); }
+        .session-strip .sess-meta { font-variant-numeric: tabular-nums; color: #cbd5e1; font-size: 0.8rem; }
+        .session-strip .sess-pill { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.06em; padding: 4px 8px; border-radius: 4px; background: rgba(167, 34, 255, 0.25); color: #e9d5ff; }
+        .session-strip .sess-pill.off { background: rgba(255,255,255,0.08); color: #94a3b8; }
 
         /* Switch */
         .config-row { background: rgba(255,255,255,0.05); padding: 25px; border-radius: 15px; display: flex; justify-content: space-between; align-items: center; border: 1px solid rgba(255,255,255,0.1); }
@@ -101,10 +96,13 @@
 
     <div class="main">
         <div class="top-bar">
-            <div style="font-family: 'Bebas Neue'; font-size: 1.4rem; color: var(--fn-blue);">TU UBICACIÓN: VALENCIA, ESPAÑA</div>
+            <div>
+                <div class="tz-label">Referencia horaria</div>
+                <div class="tz-place">España (peninsular)</div>
+            </div>
             <div style="text-align: right;">
                 <div id="valencia-clock" class="valencia-time">00:00:00</div>
-                <div style="font-size: 0.8rem; letter-spacing: 2px; opacity: 0.7;">RELOJ LOCAL</div>
+                <div class="clock-sub">Hora actual</div>
             </div>
         </div>
 
@@ -112,21 +110,13 @@
 <div id="inicio" class="content-section active">
             <div class="status-card">
                 <div id="status-text" class="status-badge offline">OFFLINE</div>
-                <div id="play-time" style="font-size: 1.8rem; font-family: 'Bebas Neue'; color: var(--fn-blue);">ESPERANDO CONEXIÓN...</div>
+                <div id="play-time" style="font-size: 1.05rem; font-family: 'Inter', sans-serif; color: #cbd5e1; font-weight: 500;">ESPERANDO CONEXIÓN...</div>
+                <p id="offline-hint" class="offline-hint" style="display: none;"></p>
             </div>
 
-            <div id="off-details" style="display: none;">
-                <h3 style="font-family:'Bebas Neue'; color: var(--fn-yellow); font-size: 2rem; text-align: center;">Momento exacto de la desconexión</h3>
-                <div class="time-comparison">
-                    <div class="time-box box-ar">
-                        <div class="country-header"><span class="flag">🇦🇷</span> ARGENTINA</div>
-                        <span id="time-ar" class="time-ar">--:-- HS</span>
-                    </div>
-                    <div class="time-box box-es">
-                        <div class="country-header"><span class="flag">🇪🇸</span> ESPAÑA</div>
-                        <span id="time-es" class="time-es">--:-- HS</span>
-                    </div>
-                </div>
+            <div class="last-sessions-block">
+                <p class="section-title">Últimas conexiones</p>
+                <ul id="last-sessions-list" class="session-strip"></ul>
             </div>
         </div>
 
@@ -140,10 +130,8 @@
             <table class="sessions-detail" id="detail-sessions">
                 <thead>
                     <tr>
-                        <th>Inicio (ES)</th>
-                        <th>Inicio (AR)</th>
-                        <th>Fin (ES)</th>
-                        <th>Fin (AR)</th>
+                        <th>Inicio (España)</th>
+                        <th>Fin (España)</th>
                         <th>Estado</th>
                         <th>Duración (aprox.)</th>
                     </tr>
@@ -168,7 +156,6 @@
     <script>
         const API_BASE = "";
         const OPT_ES = { timeZone: 'Europe/Madrid', dateStyle: 'short', timeStyle: 'short' };
-        const OPT_AR = { timeZone: 'America/Argentina/Buenos_Aires', dateStyle: 'short', timeStyle: 'short' };
         let detailChart = null;
 
         function fmtZone(iso, opts) {
@@ -236,12 +223,9 @@
                 data.forEach(s => {
                     const tr = document.createElement('tr');
                     const finEs = s.is_active ? '—' : fmtZone(s.end_time, OPT_ES);
-                    const finAr = s.is_active ? '—' : fmtZone(s.end_time, OPT_AR);
                     tr.innerHTML =
                         '<td>' + fmtZone(s.start_time, OPT_ES) + '</td>' +
-                        '<td>' + fmtZone(s.start_time, OPT_AR) + '</td>' +
                         '<td>' + finEs + '</td>' +
-                        '<td>' + finAr + '</td>' +
                         '<td>' + (s.is_active ? 'Activa' : 'Cerrada') + '</td>' +
                         '<td>' + duracionTxt(s.start_time, s.end_time, s.is_active) + '</td>';
                     tbody.appendChild(tr);
@@ -257,10 +241,35 @@
         setInterval(updateClock, 1000);
 
         // --- Estado vía API (misma credencial que el monitor de escritorio) ---
+        function renderLastSessions(sessions) {
+            const ul = document.getElementById('last-sessions-list');
+            ul.innerHTML = '';
+            const slice = (sessions || []).slice(0, 3);
+            if (!slice.length) {
+                const li = document.createElement('li');
+                li.style.justifyContent = 'center';
+                li.textContent = 'Sin sesiones registradas.';
+                ul.appendChild(li);
+                return;
+            }
+            slice.forEach((s, idx) => {
+                const li = document.createElement('li');
+                const pill = document.createElement('span');
+                pill.className = 'sess-pill' + (s.is_active ? '' : ' off');
+                pill.textContent = s.is_active ? 'En curso' : 'Cerrada';
+                const meta = document.createElement('span');
+                meta.className = 'sess-meta';
+                meta.textContent = 'Sesión ' + (idx + 1) + ' · Inicio ' + fmtZone(s.start_time, OPT_ES);
+                li.appendChild(meta);
+                li.appendChild(pill);
+                ul.appendChild(li);
+            });
+        }
+
         async function loadData() {
             const statusText = document.getElementById('status-text');
             const playTime = document.getElementById('play-time');
-            const offDetails = document.getElementById('off-details');
+            const offlineHint = document.getElementById('offline-hint');
 
             try {
                 const res = await fetch(API_BASE + '/api/status');
@@ -270,11 +279,13 @@
                     console.error("Respuesta /api/status inesperada:", sessions);
                     return;
                 }
+                renderLastSessions(sessions);
+
                 if (sessions.length === 0) {
                     statusText.innerText = "OFFLINE";
                     statusText.className = "status-badge offline";
                     playTime.innerText = "ESPERANDO CONEXIÓN...";
-                    offDetails.style.display = "none";
+                    offlineHint.style.display = "none";
                     return;
                 }
 
@@ -283,24 +294,21 @@
                 if (data.is_active) {
                     statusText.innerText = "ONLINE";
                     statusText.className = "status-badge online";
-                    offDetails.style.display = "none";
+                    offlineHint.style.display = "none";
 
                     const start = new Date(data.start_time);
                     const diff = Math.max(0, Math.floor((new Date() - start) / 1000 / 60));
-                    playTime.innerText = `LLEVA JUGANDO: ${Math.floor(diff / 60)}H ${diff % 60}M`;
+                    playTime.innerText = `En sesión · ${Math.floor(diff / 60)} h ${diff % 60} min`;
                 } else {
                     statusText.innerText = "OFFLINE";
                     statusText.className = "status-badge offline";
-                    playTime.innerText = "ESTÁ FUERA DEL JUEGO";
-                    offDetails.style.display = "block";
-
+                    playTime.innerText = "Fuera del juego";
                     const end = data.end_time ? new Date(data.end_time) : null;
                     if (end && !isNaN(end.getTime())) {
-                        document.getElementById('time-es').innerText = fmtZone(data.end_time, OPT_ES) + " HS";
-                        document.getElementById('time-ar').innerText = fmtZone(data.end_time, OPT_AR) + " HS";
+                        offlineHint.style.display = "block";
+                        offlineHint.textContent = 'Última desconexión: ' + fmtZone(data.end_time, OPT_ES) + ' (España)';
                     } else {
-                        document.getElementById('time-es').innerText = "--:-- HS";
-                        document.getElementById('time-ar').innerText = "--:-- HS";
+                        offlineHint.style.display = "none";
                     }
                 }
             } catch (e) {

@@ -36,7 +36,6 @@ class PapaMonitorApp:
         self.root = tk.Tk()
         self.root.withdraw()
         self.root.title(f"{constants.APP_NAME} — Panel")
-        self.root.geometry("520x680")
         self.root.configure(bg="#ffffff")
 
         try:
@@ -46,8 +45,12 @@ class PapaMonitorApp:
         except OSError:
             self.img_logo = Image.new("RGB", (64, 64), color=(0, 120, 215))
 
-        self.console_visible = tk.BooleanVar(value=True)
+        self.console_visible = tk.BooleanVar(value=False)
         self._console_container: tk.Frame | None = None
+        self._tarea_instalada_al_inicio = scheduler.tarea_existe()
+        if self._tarea_instalada_al_inicio:
+            self.console_visible.set(True)
+        self.root.geometry("520x680" if self._tarea_instalada_al_inicio else "520x360")
 
         self._setup_ui()
         self.icon = iniciar_tray(self.img_logo, self.lanzar_panel, self.salir_total)
@@ -108,8 +111,11 @@ class PapaMonitorApp:
         except tk.TclError:
             pass
 
+    def _puede_mostrar_consola(self) -> bool:
+        return scheduler.tarea_existe()
+
     def _toggle_consola_vista(self) -> None:
-        if not self._console_container:
+        if not self._console_container or not self._puede_mostrar_consola():
             return
         if self.console_visible.get():
             self._console_container.pack(fill="both", expand=True, padx=16, pady=(0, 8))
@@ -140,16 +146,24 @@ class PapaMonitorApp:
                 height=2,
                 command=self.accion_instalar,
             ).pack(fill="x", pady=2)
-        else:
-            tk.Button(
-                row1,
-                text="Actualizar / reparar tarea programada",
-                bg="#0078d7",
-                fg="white",
-                font=("Segoe UI", 10, "bold"),
-                height=2,
-                command=self.accion_reparar_tarea,
-            ).pack(fill="x", pady=2)
+            hint0 = (
+                "El monitor comprobará si la tarea de inicio automático ya existe. "
+                "Tras instalar, verás las opciones de actualizar, desinstalar y la consola de actividad."
+            )
+            tk.Label(self.body, text=hint0, bg="#ffffff", fg="#666", font=("Segoe UI", 8), wraplength=480, justify="left").pack(
+                anchor="w", pady=(8, 0)
+            )
+            return
+
+        tk.Button(
+            row1,
+            text="Actualizar / reparar tarea programada",
+            bg="#0078d7",
+            fg="white",
+            font=("Segoe UI", 10, "bold"),
+            height=2,
+            command=self.accion_reparar_tarea,
+        ).pack(fill="x", pady=2)
 
         row2 = tk.Frame(self.body, bg="#ffffff")
         row2.pack(fill="x", pady=4)
@@ -187,8 +201,7 @@ class PapaMonitorApp:
         ).pack(anchor="w")
 
         hint = (
-            "Tras instalar la tarea, el monitor sigue en la bandeja. "
-            "Patrones de proceso se cargan del servidor (public-config)."
+            "El monitor sigue en la bandeja. Los patrones de proceso se cargan del servidor (public-config)."
         )
         tk.Label(self.body, text=hint, bg="#ffffff", fg="#666", font=("Segoe UI", 8), wraplength=480, justify="left").pack(
             anchor="w", pady=(6, 0)
@@ -196,7 +209,13 @@ class PapaMonitorApp:
 
     def lanzar_panel(self) -> None:
         self.dibujar_botones()
-        self._toggle_consola_vista()
+        if self._puede_mostrar_consola():
+            self.root.geometry("520x680")
+            self._toggle_consola_vista()
+        else:
+            self.root.geometry("520x360")
+            if self._console_container:
+                self._console_container.pack_forget()
         self.root.deiconify()
         self.root.lift()
 
@@ -205,13 +224,31 @@ class PapaMonitorApp:
 
     # --- Acciones ---
     def accion_instalar(self) -> None:
+        if scheduler.tarea_existe():
+            messagebox.showinfo(
+                "Ya instalado",
+                "La tarea de inicio con Windows ya está configurada.\n"
+                "Usá «Actualizar / reparar» o «Desinstalar» si la necesitás cambiar.",
+            )
+            self.console_visible.set(True)
+            self.dibujar_botones()
+            self.root.geometry("520x680")
+            self._toggle_consola_vista()
+            return
         ok, msg = scheduler.crear_tarea_inicio()
         if ok:
-            self.log("Tarea programada creada (inicio con Windows).")
-            messagebox.showinfo("Listo", "Instalación de inicio automático correcta.")
+            self.console_visible.set(True)
             self.dibujar_botones()
+            self._toggle_consola_vista()
+            self.log("Tarea programada creada (inicio con Windows).")
+            self.log(f"API: {self.api_url} | sondeo: {self.poll_interval}s | patrones: {', '.join(self.patterns)}")
+            messagebox.showinfo("Listo", "Instalación de inicio automático correcta.")
+            self.root.geometry("520x680")
         else:
-            self.log(f"Error al crear tarea: {msg}")
+            if self._puede_mostrar_consola():
+                self.log(f"Error al crear tarea: {msg}")
+            else:
+                messagebox.showerror("Error", f"No se pudo crear la tarea:\n{msg}")
 
     def accion_reparar_tarea(self) -> None:
         scheduler.eliminar_tarea()
@@ -249,7 +286,13 @@ class PapaMonitorApp:
 
     # --- Monitor ---
     def _monitor_loop(self) -> None:
-        self.log(f"API: {self.api_url} | sondeo: {self.poll_interval}s | patrones: {', '.join(self.patterns)}")
+        if self._puede_mostrar_consola():
+            self.root.after(
+                0,
+                lambda: self.log(
+                    f"API: {self.api_url} | sondeo: {self.poll_interval}s | patrones: {', '.join(self.patterns)}"
+                ),
+            )
         while self.running:
             try:
                 self._loop_ticks += 1

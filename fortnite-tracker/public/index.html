@@ -1,28 +1,23 @@
 <!DOCTYPE html>
-<html lang="es">
+<html>
 <head>
+    <title>Tracker de Papá</title>
     <meta charset="UTF-8">
-    <title>Fortnite Status Dashboard</title>
     <style>
-        body { font-family: sans-serif; background: #121212; color: white; text-align: center; }
-        .card { background: #1e1e1e; padding: 20px; margin: 20px auto; width: 80%; border-radius: 10px; }
-        .status-on { color: #00ff00; }
-        .status-off { color: #ff4444; }
+        body { font-family: sans-serif; background: #111; color: white; text-align: center; padding-top: 50px; }
+        .status { font-size: 2em; padding: 20px; border-radius: 10px; display: inline-block; }
+        .online { background: #2ecc71; color: black; }
+        .offline { background: #e74c3c; }
     </style>
 </head>
 <body>
-    <h1>Tracker de Papá</h1>
-    <div id="status" class="card">Cargando estado...</div>
-    <h2>Historial de Sesiones</h2>
-    <div id="history" class="card"></div>
+    <h1>Estado de Papá en Fortnite</h1>
+    <div id="status-box" class="status">Cargando...</div>
+    <p>La página se actualiza sola cada 1 minuto.</p>
 
     <script>
-        async function loadData() {
-            // Acá deberías hacer un fetch a otro endpoint de tu API que haga:
-            // supabase.table("sessions").select("*").order("start_time", {ascending: false})
-            // Por brevedad, este es el placeholder para los datos.
-        }
-        loadData();
+        // Acá podrías meter un fetch a Supabase para mostrar el historial
+        // Por ahora es solo el visual del dashboard
     </script>
 </body>
 </html>

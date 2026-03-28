@@ -2,23 +2,26 @@ import psutil
 import requests
 import time
 
-# Configura tu URL de Vercel acá
-API_URL = "https://tu-proyecto.vercel.app/api/status"
-PROCESS_NAME = "FortniteClient-Win64-Shipping.exe"
+# USÁ TU URL REAL DE VERCEL
+API_URL = "https://papa-monitor.vercel.app/api/status"
+PROCESS_NAME = "chrome.exe"
 
 def check_process():
-    # Busca si el proceso de Fortnite está en la lista de ejecución
     for proc in psutil.process_iter(['name']):
-        if proc.info['name'] == PROCESS_NAME:
-            return True
+        try:
+            if proc.info['name'] == PROCESS_NAME:
+                return True
+        except (psutil.NoSuchProcess, psutil.AccessDenied):
+            continue
     return False
 
-print("Monitoreo iniciado...")
+print(f"Buscando {PROCESS_NAME}...")
 while True:
     is_online = check_process()
     try:
-        requests.post(API_URL, json={"is_online": is_online}, timeout=10)
+        response = requests.post(API_URL, json={"is_online": is_online}, timeout=10)
+        print(f"Enviado: {'Online' if is_online else 'Offline'} | Server: {response.status_code}")
     except Exception as e:
         print(f"Error de red: {e}")
     
-    time.sleep(30) # Checkea cada 30 segundos
+    time.sleep(30)

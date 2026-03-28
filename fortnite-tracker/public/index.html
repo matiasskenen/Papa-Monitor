@@ -1,23 +1,77 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
-    <title>Tracker de Papá</title>
     <meta charset="UTF-8">
+    <title>Fortnite Tracker - Papá</title>
     <style>
-        body { font-family: sans-serif; background: #111; color: white; text-align: center; padding-top: 50px; }
-        .status { font-size: 2em; padding: 20px; border-radius: 10px; display: inline-block; }
-        .online { background: #2ecc71; color: black; }
-        .offline { background: #e74c3c; }
+        body { font-family: 'Segoe UI', sans-serif; background: #0f0f0f; color: white; text-align: center; padding: 40px; }
+        .card { background: #1a1a1a; border-radius: 15px; padding: 20px; margin: 20px auto; max-width: 500px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
+        .status-badge { padding: 10px 20px; border-radius: 50px; font-weight: bold; font-size: 1.2em; }
+        .online { background: #2ecc71; color: #000; box-shadow: 0 0 15px #2ecc71; }
+        .offline { background: #333; color: #888; }
+        table { width: 100%; margin-top: 20px; border-collapse: collapse; }
+        th, td { padding: 10px; border-bottom: 1px solid #333; font-size: 0.9em; }
+        th { color: #aaa; }
     </style>
 </head>
 <body>
-    <h1>Estado de Papá en Fortnite</h1>
-    <div id="status-box" class="status">Cargando...</div>
-    <p>La página se actualiza sola cada 1 minuto.</p>
+    <h1>Tracker de Papá</h1>
+    
+    <div class="card">
+        <div id="status-container">
+            <span id="badge" class="status-badge offline">VERIFICANDO...</span>
+        </div>
+    </div>
+
+    <h2>Historial de Sesiones</h2>
+    <div class="card">
+        <table>
+            <thead>
+                <tr>
+                    <th>Inicio</th>
+                    <th>Fin</th>
+                    <th>Minutos</th>
+                </tr>
+            </thead>
+            <tbody id="history-body"></tbody>
+        </table>
+    </div>
 
     <script>
-        // Acá podrías meter un fetch a Supabase para mostrar el historial
-        // Por ahora es solo el visual del dashboard
+        async function updateDashboard() {
+            try {
+                // Cambia esta URL por la tuya de Vercel
+                const res = await fetch('/api/status');
+                const data = await res.json();
+                
+                const badge = document.getElementById('badge');
+                const historyBody = document.getElementById('history-body');
+                
+                // Verificar si la primera sesión del historial está activa
+                if (data.length > 0 && data[0].is_active) {
+                    badge.innerText = "JUGANDO AHORA";
+                    badge.className = "status-badge online";
+                } else {
+                    badge.innerText = "OFFLINE";
+                    badge.className = "status-badge offline";
+                }
+
+                // Llenar la tabla
+                historyBody.innerHTML = data.map(s => `
+                    <tr>
+                        <td>${new Date(s.start_time).toLocaleString()}</td>
+                        <td>${s.end_time ? new Date(s.end_time).toLocaleString() : '---'}</td>
+                        <td>${s.duration_minutes || 0} min</td>
+                    </tr>
+                `).join('');
+
+            } catch (e) {
+                console.error("Error cargando dashboard", e);
+            }
+        }
+
+        updateDashboard();
+        setInterval(updateDashboard, 30000); // Se actualiza cada 30 seg
     </script>
 </body>
 </html>

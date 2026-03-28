@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PapaMonitor - Panel Individual</title>
     <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;700&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root {
             --fn-purple: #a722ff; --fn-blue: #00bbff; --fn-yellow: #fef102;
@@ -83,13 +82,20 @@
         .slider:before { position: absolute; content: ""; height: 27px; width: 27px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
         input:checked + .slider { background-color: var(--fn-purple); }
         input:checked + .slider:before { transform: translateX(30px); }
+
+        .sessions-detail { width: 100%; border-collapse: collapse; font-size: 0.9rem; margin-top: 20px; }
+        .sessions-detail th, .sessions-detail td { padding: 8px 6px; border-bottom: 1px solid rgba(255,255,255,0.12); text-align: left; }
+        .sessions-detail th { font-family: 'Bebas Neue'; color: var(--fn-yellow); font-size: 1.1rem; }
+        .chart-box { position: relative; height: 380px; margin: 24px 0; }
     </style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 </head>
 <body>
 
     <div class="sidebar">
         <h2>PAPA MONITOR</h2>
         <button class="nav-btn active" onclick="showSection('inicio', this)">ESTADO</button>
+        <button class="nav-btn" onclick="showSection('stats', this)">ESTADÍSTICAS</button>
         <button class="nav-btn" onclick="showSection('config', this)">CONFIGURACIÓN</button>
     </div>
 
@@ -124,6 +130,28 @@
             </div>
         </div>
 
+        <div id="stats" class="content-section">
+            <h2 style="font-family:'Bebas Neue'; font-size: 2.5rem; margin-bottom: 8px;">Actividad por día</h2>
+            <p style="opacity:0.8; margin-bottom:16px;">Minutos jugados por calendario (Valencia). Gráfico detallado y listado de sesiones recientes.</p>
+            <div class="chart-box">
+                <canvas id="detailDaysChart"></canvas>
+            </div>
+            <h3 style="font-family:'Bebas Neue'; color: var(--fn-yellow); font-size: 1.6rem;">Sesiones recientes (horarios inicio)</h3>
+            <table class="sessions-detail" id="detail-sessions">
+                <thead>
+                    <tr>
+                        <th>Inicio (ES)</th>
+                        <th>Inicio (AR)</th>
+                        <th>Fin (ES)</th>
+                        <th>Fin (AR)</th>
+                        <th>Estado</th>
+                        <th>Duración (aprox.)</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
         
 <div id="config" class="content-section">
             <h2 style="font-family:'Bebas Neue'; font-size: 2.5rem; margin-bottom: 20px;">Ajustes personales</h2>
@@ -138,17 +166,87 @@
     </div>
 
     <script>
-        // --- CONFIG SUPABASE ---
-        // Recordá poner tus credenciales reales acá
-        const SUPABASE_URL = "TU_URL_DE_SUPABASE";
-        const SUPABASE_KEY = "TU_SERVICE_ROLE_KEY";
-        const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        const API_BASE = "";
+        const OPT_ES = { timeZone: 'Europe/Madrid', dateStyle: 'short', timeStyle: 'short' };
+        const OPT_AR = { timeZone: 'America/Argentina/Buenos_Aires', dateStyle: 'short', timeStyle: 'short' };
+        let detailChart = null;
+
+        function fmtZone(iso, opts) {
+            if (!iso) return '—';
+            const d = new Date(iso);
+            if (isNaN(d.getTime())) return '—';
+            return new Intl.DateTimeFormat('es-ES', opts).format(d);
+        }
+
+        function duracionTxt(startIso, endIso, activa) {
+            const a = new Date(startIso);
+            const b = activa ? new Date() : (endIso ? new Date(endIso) : null);
+            if (!b || isNaN(a.getTime()) || isNaN(b.getTime())) return '—';
+            let m = Math.max(0, Math.floor((b - a) / 60000));
+            return Math.floor(m / 60) + 'h ' + (m % 60) + 'm';
+        }
 
         function showSection(id, btn) {
             document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
             document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
             document.getElementById(id).classList.add('active');
             btn.classList.add('active');
+            if (id === 'stats') { loadStatsPage(); }
+        }
+
+        async function loadStatsPage() {
+            try {
+                const res = await fetch(API_BASE + '/api/stats/playtime?days=60&tz=Europe/Madrid');
+                const j = await res.json();
+                if (j.by_day && j.by_day.length) {
+                    const ctx = document.getElementById('detailDaysChart');
+                    if (detailChart) detailChart.destroy();
+                    detailChart = new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: j.by_day.map(x => x.date),
+                            datasets: [{
+                                label: 'Minutos (Valencia)',
+                                data: j.by_day.map(x => x.minutes),
+                                fill: true,
+                                tension: 0.25,
+                                borderColor: '#00bbff',
+                                backgroundColor: 'rgba(167, 34, 255, 0.15)',
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: { legend: { labels: { color: '#ccc' } } },
+                            scales: {
+                                x: { ticks: { color: '#aaa', maxRotation: 45 } },
+                                y: { ticks: { color: '#aaa' }, beginAtZero: true }
+                            }
+                        }
+                    });
+                }
+            } catch (e) { console.error(e); }
+
+            const tbody = document.querySelector('#detail-sessions tbody');
+            tbody.innerHTML = '';
+            try {
+                const res = await fetch(API_BASE + '/api/status?limit=40');
+                const data = await res.json();
+                if (!Array.isArray(data)) return;
+                data.forEach(s => {
+                    const tr = document.createElement('tr');
+                    const finEs = s.is_active ? '—' : fmtZone(s.end_time, OPT_ES);
+                    const finAr = s.is_active ? '—' : fmtZone(s.end_time, OPT_AR);
+                    tr.innerHTML =
+                        '<td>' + fmtZone(s.start_time, OPT_ES) + '</td>' +
+                        '<td>' + fmtZone(s.start_time, OPT_AR) + '</td>' +
+                        '<td>' + finEs + '</td>' +
+                        '<td>' + finAr + '</td>' +
+                        '<td>' + (s.is_active ? 'Activa' : 'Cerrada') + '</td>' +
+                        '<td>' + duracionTxt(s.start_time, s.end_time, s.is_active) + '</td>';
+                    tbody.appendChild(tr);
+                });
+            } catch (e) { console.error(e); }
         }
 
         // --- RELOJ VALENCIA EN VIVO ---
@@ -158,55 +256,81 @@
         }
         setInterval(updateClock, 1000);
 
-        // --- LÓGICA DE DATOS INDIVIDUALES ---
+        // --- Estado vía API (misma credencial que el monitor de escritorio) ---
         async function loadData() {
+            const statusText = document.getElementById('status-text');
+            const playTime = document.getElementById('play-time');
+            const offDetails = document.getElementById('off-details');
+
             try {
-                // 1. Limpiar sesiones muertas via RPC
-                await _supabase.rpc('cerrar_sesiones_muertas');
+                const res = await fetch(API_BASE + '/api/status');
+                if (!res.ok) throw new Error(await res.text());
+                const sessions = await res.json();
+                if (!Array.isArray(sessions)) {
+                    console.error("Respuesta /api/status inesperada:", sessions);
+                    return;
+                }
+                if (sessions.length === 0) {
+                    statusText.innerText = "OFFLINE";
+                    statusText.className = "status-badge offline";
+                    playTime.innerText = "ESPERANDO CONEXIÓN...";
+                    offDetails.style.display = "none";
+                    return;
+                }
 
-                // 2. Traer última sesión registrada (individual)
-                const { data, error } = await _supabase.from('sessions').select('*').order('start_time', { ascending: false }).limit(1).single();
+                const data = sessions[0];
 
-                if (data) {
-                    const statusText = document.getElementById('status-text');
-                    const playTime = document.getElementById('play-time');
-                    const offDetails = document.getElementById('off-details');
+                if (data.is_active) {
+                    statusText.innerText = "ONLINE";
+                    statusText.className = "status-badge online";
+                    offDetails.style.display = "none";
 
-                    if (data.is_active) {
-                        statusText.innerText = "ONLINE";
-                        statusText.className = "status-badge online";
-                        offDetails.style.display = "none";
-                        
-                        const start = new Date(data.start_time);
-                        const diff = Math.floor((new Date() - start) / 1000 / 60); 
-                        // Texto Individual
-                        playTime.innerText = `LLEVÁS JUGANDO: ${Math.floor(diff/60)}H ${diff%60}M`;
+                    const start = new Date(data.start_time);
+                    const diff = Math.max(0, Math.floor((new Date() - start) / 1000 / 60));
+                    playTime.innerText = `LLEVA JUGANDO: ${Math.floor(diff / 60)}H ${diff % 60}M`;
+                } else {
+                    statusText.innerText = "OFFLINE";
+                    statusText.className = "status-badge offline";
+                    playTime.innerText = "ESTÁ FUERA DEL JUEGO";
+                    offDetails.style.display = "block";
+
+                    const end = data.end_time ? new Date(data.end_time) : null;
+                    if (end && !isNaN(end.getTime())) {
+                        document.getElementById('time-es').innerText = fmtZone(data.end_time, OPT_ES) + " HS";
+                        document.getElementById('time-ar').innerText = fmtZone(data.end_time, OPT_AR) + " HS";
                     } else {
-                        statusText.innerText = "OFFLINE";
-                        statusText.className = "status-badge offline";
-                        // Texto Individual
-                        playTime.innerText = "ESTÁ FUERA DEL JUEGO";
-                        offDetails.style.display = "block";
-
-                        const end = new Date(data.end_time);
-                        const optES = { timeZone: 'Europe/Madrid', hour: '2-digit', minute: '2-digit', hour12: false };
-                        const optAR = { timeZone: 'America/Argentina/Buenos_Aires', hour: '2-digit', minute: '2-digit', hour12: false };
-                        
-                        // Formato claro de hora individual
-                        document.getElementById('time-es').innerText = new Intl.DateTimeFormat('es-ES', optES).format(end) + " HS";
-                        document.getElementById('time-ar').innerText = new Intl.DateTimeFormat('es-ES', optAR).format(end) + " HS";
+                        document.getElementById('time-es').innerText = "--:-- HS";
+                        document.getElementById('time-ar').innerText = "--:-- HS";
                     }
                 }
-            } catch (e) { console.error("Error Supabase:", e); }
+            } catch (e) {
+                console.error("Error API:", e);
+            }
         }
 
         async function loadConfig() {
-            const { data } = await _supabase.from('config').select('value').eq('key', 'emails_enabled').single();
-            if (data) document.getElementById('email-toggle').checked = (data.value === 'true' || data.value === true);
+            try {
+                const res = await fetch(API_BASE + '/api/config');
+                if (!res.ok) return;
+                const data = await res.json();
+                if (data && data.value !== undefined) {
+                    document.getElementById('email-toggle').checked = (data.value === 'true' || data.value === true);
+                }
+            } catch (e) {
+                console.error("Error config:", e);
+            }
         }
 
         async function updateConfig(val) {
-            await _supabase.from('config').update({ value: val }).eq('key', 'emails_enabled');
+            try {
+                await fetch(API_BASE + '/api/config', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ enabled: !!val }),
+                });
+            } catch (e) {
+                console.error("Error guardando config:", e);
+            }
         }
 
         // Ejecución inicial

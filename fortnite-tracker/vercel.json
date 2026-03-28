@@ -2,6 +2,7 @@
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api/index.py" },
     { "source": "/dashboard", "destination": "/monitor.html" },
+    { "source": "/admin", "destination": "/admin.html" },
     { "source": "/", "destination": "/index.html" }
   ]
 }

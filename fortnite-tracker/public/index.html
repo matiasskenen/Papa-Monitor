@@ -173,6 +173,21 @@
         .step-item { background: rgba(0,0,0,0.4); padding: 20px; text-align: center; }
         .step-num { font-family: 'Bebas Neue'; font-size: 3rem; color: #fff; }
 
+        .live-panel {
+            background: rgba(0,0,0,0.75);
+            border: 2px solid var(--fn-purple);
+            border-radius: 12px;
+            padding: 28px;
+            margin: 40px 0;
+        }
+        .live-panel h2 { font-family: 'Bebas Neue'; font-size: 2.8rem; color: var(--fn-yellow); margin-bottom: 20px; text-align: center; }
+        .sessions-table { width: 100%; border-collapse: collapse; font-size: 0.95rem; margin-bottom: 28px; }
+        .sessions-table th, .sessions-table td { padding: 10px 8px; border-bottom: 1px solid #333; text-align: left; }
+        .sessions-table th { color: var(--fn-blue); font-family: 'Bebas Neue'; font-size: 1.1rem; }
+        .tz-es { color: var(--fn-yellow); }
+        .tz-ar { color: var(--fn-blue); }
+        .chart-wrap { position: relative; height: 320px; margin-top: 16px; }
+
         footer { text-align: center; padding: 40px 0; font-family: 'Bebas Neue'; font-size: 1.4rem; color: #666; }
 
         @media (max-width: 768px) {
@@ -229,14 +244,103 @@
                 <div class="step-item"><div class="step-num">03</div><p style="font-family:'Bebas Neue';">Minimizar</p></div>
             </div>
         </section>
+
+        <section class="live-panel container">
+            <h2>Últimas sesiones · Valencia 🇪🇸 vs Argentina 🇦🇷</h2>
+            <p style="text-align:center; opacity:.85; margin-bottom:16px; font-family:'Bebas Neue'; font-size:1.2rem;">
+                Inicio de cada sesión en ambas zonas (las últimas 3 registradas)
+            </p>
+            <table class="sessions-table" id="home-sessions">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Estado</th>
+                        <th class="tz-es">Inicio (España)</th>
+                        <th class="tz-ar">Inicio (Argentina)</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+            <h3 style="font-family:'Bebas Neue'; font-size:1.8rem; color: var(--fn-blue); text-align:center;">Días con partidas (minutos, zona Valencia)</h3>
+            <div class="chart-wrap">
+                <canvas id="homeDaysChart"></canvas>
+            </div>
+        </section>
     </main>
 
     <footer>
         <p>© 2026 PapaMonitor | Battle Royale Edition</p>
-        <p><a href="/dashboard" style="color: #444; text-decoration: none;">Acceder al Dashboard de Monitoreo</a></p>
+        <p><a href="/dashboard" style="color: #444; text-decoration: none;">Dashboard detallado</a>
+           · <a href="/admin" style="color: #444; text-decoration: none;">Admin</a></p>
     </footer>
 
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <script>
+        const OPT_ES = { timeZone: 'Europe/Madrid', dateStyle: 'short', timeStyle: 'short' };
+        const OPT_AR = { timeZone: 'America/Argentina/Buenos_Aires', dateStyle: 'short', timeStyle: 'short' };
+
+        function fmtZone(iso, opts) {
+            if (!iso) return '—';
+            const d = new Date(iso);
+            if (isNaN(d.getTime())) return '—';
+            return new Intl.DateTimeFormat('es-ES', opts).format(d);
+        }
+
+        let homeChart = null;
+
+        async function loadHomeSessions() {
+            const tbody = document.querySelector('#home-sessions tbody');
+            tbody.innerHTML = '';
+            try {
+                const res = await fetch('/api/status?limit=10');
+                const data = await res.json();
+                if (!Array.isArray(data)) return;
+                const rows = data.slice(0, 3);
+                rows.forEach((s, i) => {
+                    const tr = document.createElement('tr');
+                    const st = s.is_active ? 'Activa' : 'Cerrada';
+                    const start = s.start_time;
+                    tr.innerHTML = '<td>' + (i + 1) + '</td><td>' + st + '</td><td class="tz-es">' +
+                        fmtZone(start, OPT_ES) + '</td><td class="tz-ar">' + fmtZone(start, OPT_AR) + '</td>';
+                    tbody.appendChild(tr);
+                });
+            } catch (e) { console.error(e); }
+        }
+
+        async function loadHomeChart() {
+            try {
+                const res = await fetch('/api/stats/playtime?days=30&tz=Europe/Madrid');
+                const j = await res.json();
+                if (!j.by_day || !j.by_day.length) return;
+                const labels = j.by_day.map(x => x.date);
+                const mins = j.by_day.map(x => x.minutes);
+                const ctx = document.getElementById('homeDaysChart');
+                if (homeChart) homeChart.destroy();
+                homeChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels,
+                        datasets: [{
+                            label: 'Minutos jugados',
+                            data: mins,
+                            backgroundColor: 'rgba(0, 187, 255, 0.55)',
+                            borderColor: '#a722ff',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { labels: { color: '#ccc' } } },
+                        scales: {
+                            x: { ticks: { color: '#aaa', maxRotation: 45 } },
+                            y: { ticks: { color: '#aaa' }, beginAtZero: true }
+                        }
+                    }
+                });
+            } catch (e) { console.error(e); }
+        }
+
         async function fetchVersion() {
             const el = document.getElementById('version-tag');
             try {
@@ -250,7 +354,12 @@
                 console.log("Error buscando versión");
             }
         }
-        document.addEventListener('DOMContentLoaded', fetchVersion);
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchVersion();
+            loadHomeSessions();
+            loadHomeChart();
+            setInterval(() => { loadHomeSessions(); loadHomeChart(); }, 60000);
+        });
     </script>
 </body>
 </html>

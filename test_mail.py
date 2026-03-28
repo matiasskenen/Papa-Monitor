@@ -1,6 +1,10 @@
+import os
+
 import resend
 
-resend.api_key = "re_aiajeHT6_24iFMnw5zdM9tYrXwzvzaikv"
+resend.api_key = os.environ.get("RESEND_API_KEY", "")
+if not resend.api_key:
+    raise SystemExit("Definí RESEND_API_KEY en el entorno.")
 
 try:
     r = resend.Emails.send({

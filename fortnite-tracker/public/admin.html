@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PapaMonitor — Admin</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        :root { --bg: #0a0a12; --card: #16162a; --text: #e8e8f0; --accent: #7c3aed; --border: #2a2a44; }
+        * { box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 24px; line-height: 1.5; }
+        h1 { font-size: 1.5rem; margin: 0 0 8px; }
+        p.note { color: #888; font-size: 0.9rem; margin-bottom: 24px; }
+        .row { margin-bottom: 16px; }
+        label { display: block; font-size: 0.85rem; color: #aaa; margin-bottom: 6px; }
+        input[type="text"], input[type="password"], textarea {
+            width: 100%; max-width: 560px; padding: 10px 12px; border-radius: 8px;
+            border: 1px solid var(--border); background: #0f0f1a; color: var(--text);
+        }
+        textarea { min-height: 88px; font-family: ui-monospace, monospace; font-size: 0.85rem; }
+        button {
+            background: var(--accent); color: white; border: none; padding: 10px 20px;
+            border-radius: 8px; cursor: pointer; font-weight: 600; margin-right: 8px;
+        }
+        button.secondary { background: #333; }
+        .card { background: var(--card); padding: 20px; border-radius: 12px; max-width: 640px; border: 1px solid var(--border); }
+        .msg { margin-top: 12px; font-size: 0.9rem; }
+        .err { color: #f87171; }
+        .ok { color: #4ade80; }
+        a { color: #a78bfa; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>Configuración del servidor</h1>
+        <p class="note">
+            El token deb coincide con la variable <code>ADMIN_SECRET</code> en Vercel.
+            No guardes el token en el repositorio.
+        </p>
+        <div class="row">
+            <label for="token">Token de administrador</label>
+            <input type="password" id="token" autocomplete="off" placeholder="Pegá el ADMIN_SECRET">
+        </div>
+        <div class="row">
+            <button type="button" id="btn-load">Cargar valores</button>
+            <button type="button" class="secondary" id="btn-save">Guardar cambios</button>
+        </div>
+        <hr style="border-color: var(--border); margin: 24px 0;">
+        <div class="row">
+            <label><input type="checkbox" id="emails_enabled"> Emails de alerta activados</label>
+        </div>
+        <div class="row">
+            <label for="alert_email">Email de destino (alertas)</label>
+            <input type="text" id="alert_email" placeholder="correo@ejemplo.com">
+        </div>
+        <div class="row">
+            <label for="resend_from">Remitente Resend</label>
+            <input type="text" id="resend_from" placeholder="onboarding@resend.dev">
+        </div>
+        <div class="row">
+            <label for="poll_interval_seconds">Intervalo de sondeo cliente (segundos, 10–300)</label>
+            <input type="text" id="poll_interval_seconds" placeholder="20">
+        </div>
+        <div class="row">
+            <label for="process_substrings">Procesos a detectar (JSON array o coma-separado)</label>
+            <textarea id="process_substrings" placeholder='["FortniteClient-Win64-Shipping"]'></textarea>
+        </div>
+        <div id="feedback" class="msg"></div>
+        <p class="note" style="margin-top:24px;"><a href="/">Volver al inicio</a> · <a href="/dashboard">Dashboard</a></p>
+    </div>
+    <script>
+        const API = '';
+        const fb = document.getElementById('feedback');
+
+        function headers() {
+            const t = document.getElementById('token').value.trim();
+            if (!t) throw new Error('Ingresá el token de admin');
+            return { 'Content-Type': 'application/json', 'X-Admin-Token': t };
+        }
+
+        function parseProcessField(raw) {
+            const s = (raw || '').trim();
+            if (!s) return ['FortniteClient-Win64-Shipping'];
+            if (s.startsWith('[')) return JSON.parse(s);
+            return s.split(',').map(x => x.trim()).filter(Boolean);
+        }
+
+        document.getElementById('btn-load').addEventListener('click', async () => {
+            fb.textContent = '';
+            fb.className = 'msg';
+            try {
+                const res = await fetch(API + '/api/admin/settings', { headers: headers() });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || res.statusText);
+                document.getElementById('emails_enabled').checked = data.emails_enabled === true || data.emails_enabled === 'true';
+                document.getElementById('alert_email').value = data.alert_email || '';
+                document.getElementById('resend_from').value = data.resend_from || '';
+                document.getElementById('poll_interval_seconds').value = data.poll_interval_seconds || '20';
+                let p = data.process_substrings;
+                if (typeof p === 'string' && p.startsWith('[')) {
+                    try { p = JSON.parse(p); } catch (_) {}
+                }
+                if (Array.isArray(p)) {
+                    document.getElementById('process_substrings').value = JSON.stringify(p, null, 0);
+                } else {
+                    document.getElementById('process_substrings').value = String(p || '');
+                }
+                fb.textContent = 'Valores cargados.';
+                fb.classList.add('ok');
+            } catch (e) {
+                fb.textContent = String(e.message || e);
+                fb.classList.add('err');
+            }
+        });
+
+        document.getElementById('btn-save').addEventListener('click', async () => {
+            fb.textContent = '';
+            fb.className = 'msg';
+            try {
+                let proc;
+                try {
+                    proc = parseProcessField(document.getElementById('process_substrings').value);
+                } catch (e) {
+                    throw new Error('JSON inválido en procesos');
+                }
+                const body = {
+                    emails_enabled: document.getElementById('emails_enabled').checked,
+                    alert_email: document.getElementById('alert_email').value.trim(),
+                    resend_from: document.getElementById('resend_from').value.trim(),
+                    poll_interval_seconds: document.getElementById('poll_interval_seconds').value.trim() || '20',
+                    process_substrings: proc,
+                };
+                const res = await fetch(API + '/api/admin/settings', {
+                    method: 'POST',
+                    headers: headers(),
+                    body: JSON.stringify(body),
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || res.statusText);
+                fb.textContent = 'Guardado correctamente.';
+                fb.classList.add('ok');
+            } catch (e) {
+                fb.textContent = String(e.message || e);
+                fb.classList.add('err');
+            }
+        });
+    </script>
+</body>
+</html>

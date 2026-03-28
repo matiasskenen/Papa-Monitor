@@ -1,19 +1,18 @@
 from flask import Flask, request, jsonify
 import os
 from supabase import create_client
-from resend import Emails
+import resend
 
 app = Flask(__name__)
 
-# Configuración (Asegurate que estén en Vercel Settings)
+# Configuración
 supabase = create_client(os.environ.get("SUPABASE_URL"), os.environ.get("SUPABASE_KEY"))
-RESEND_API_KEY = os.environ.get("RESEND_KEY")
+resend.api_key = "re_aiajeHT6_24iFMnw5zdM9tYrXwzvzaikv"
 
 @app.route('/api/status', methods=['GET', 'POST'])
 def handle_status():
     if request.method == 'GET':
         try:
-            # Limpia sesiones viejas antes de mostrar los datos
             supabase.rpc('cerrar_sesiones_muertas').execute()
             res = supabase.table("sessions").select("*").order("start_time", desc=True).limit(10).execute()
             return jsonify(res.data), 200
@@ -25,11 +24,10 @@ def handle_status():
             data = request.json
             is_online = data.get("is_online", False)
             
-            # Verificamos si los mails están prendidos en la DB
+            # Switch de mail en DB
             conf = supabase.table("config").select("value").eq("key", "emails_enabled").single().execute()
             emails_allowed = conf.data.get("value", True)
 
-            # Verificamos si hay sesión activa
             active_res = supabase.table("sessions").select("*").eq("is_active", True).execute()
             active_session = active_res.data
 
@@ -37,15 +35,19 @@ def handle_status():
                 if not active_session:
                     # NUEVA SESIÓN
                     supabase.table("sessions").insert({"is_active": True, "last_heartbeat": "now()"}).execute()
-                    if emails_allowed and RESEND_API_KEY:
-                        Emails.send({
-                            "from": "FortniteTracker <onboarding@resend.dev>",
-                            "to": ["matias.skenen@gmail.com"], # <--- PONÉ TU MAIL
-                            "subject": "⚠️ PAPÁ ONLINE",
-                            "html": "<strong>El viejo entró al Fortnite ahora.</strong>"
-                        }, api_key=RESEND_API_KEY)
+                    
+                    # MANDAR MAIL (Solo a tu mail verificado)
+                    if emails_allowed:
+                        try:
+                            resend.Emails.send({
+                                "from": "onboarding@resend.dev",
+                                "to": "matias.skenen@gmail.com", # <--- TU MAIL VERIFICADO
+                                "subject": "⚠️ PAPÁ ONLINE",
+                                "html": "<strong>El viejo entró al Fortnite ahora.</strong>"
+                            })
+                        except Exception as e: print(f"Error Resend: {e}")
                 else:
-                    # ACTUALIZAR LATIDO (Heartbeat)
+                    # HEARTBEAT (Latido)
                     supabase.table("sessions").update({"last_heartbeat": "now()"}).eq("id", active_session[0]['id']).execute()
             
             elif not is_online and active_session:

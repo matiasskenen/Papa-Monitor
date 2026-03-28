@@ -2,129 +2,101 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PapaMonitor - Dashboard</title>
+    <title>PapaMonitor - Estadísticas</title>
     <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;700&display=swap" rel="stylesheet">
-    <!-- Librería de Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Librería de Gráficos -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
             --fn-purple: #a722ff; --fn-blue: #00bbff; --fn-yellow: #fef102;
             --fn-dark: #050114; --text: #ffffff;
+            --es-red: #ed1c24; --es-yellow: #ffc400;
         }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Inter', sans-serif; background: var(--fn-dark); color: var(--text); 
-            margin: 0; display: flex; height: 100vh; overflow: hidden;
+            display: flex; height: 100vh; overflow: hidden;
         }
         
-        /* Sidebar */
-        .sidebar {
-            width: 260px; background: rgba(0,0,0,0.95); border-right: 3px solid var(--fn-purple);
-            display: flex; flex-direction: column; padding: 25px;
-        }
-        .sidebar h2 { font-family: 'Bebas Neue'; font-size: 2.5rem; color: var(--fn-yellow); margin-bottom: 40px; text-shadow: 2px 2px 0 #000; }
+        .sidebar { width: 260px; background: rgba(0,0,0,0.95); border-right: 3px solid var(--fn-purple); padding: 25px; }
+        .sidebar h2 { font-family: 'Bebas Neue'; font-size: 2.5rem; color: var(--fn-yellow); margin-bottom: 40px; }
         .nav-btn {
             background: none; border: none; color: white; font-family: 'Bebas Neue'; font-size: 1.6rem;
-            text-align: left; padding: 12px; cursor: pointer; transition: 0.3s; margin-bottom: 15px;
-            clip-path: polygon(5% 0, 100% 0, 95% 100%, 0 100%);
+            text-align: left; padding: 12px; cursor: pointer; width: 100%; margin-bottom: 10px;
         }
-        .nav-btn:hover, .nav-btn.active { background: var(--fn-purple); color: white; padding-left: 20px; }
+        .nav-btn.active { background: var(--fn-purple); clip-path: polygon(5% 0, 100% 0, 95% 100%, 0 100%); }
 
-        /* Main Content */
-        .main { flex: 1; display: flex; flex-direction: column; overflow-y: auto; background: url('https://www.transparenttextures.com/patterns/carbon-fibre.png'); }
-        .top-bar {
-            background: rgba(0,0,0,0.85); padding: 15px 40px; border-bottom: 3px solid var(--fn-yellow);
-            display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 10;
-        }
-        .valencia-time { font-family: 'Bebas Neue'; font-size: 3rem; color: var(--fn-yellow); text-shadow: 0 0 15px rgba(254, 241, 2, 0.4); line-height: 1; }
+        .main { flex: 1; overflow-y: auto; background: #0a0a0a; }
+        .top-bar { background: rgba(0,0,0,0.85); padding: 15px 40px; border-bottom: 3px solid var(--fn-yellow); display: flex; justify-content: space-between; align-items: center; }
         
-        .content-section { padding: 40px; display: none; max-width: 900px; margin: 0 auto; width: 100%; }
-        .content-section.active { display: block; animation: fadeIn 0.3s ease; }
-
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .content-section { padding: 40px; display: none; }
+        .content-section.active { display: block; }
 
         /* Status Card */
         .status-card {
-            background: linear-gradient(135deg, #120129, #050114); padding: 40px; border-radius: 20px;
+            background: linear-gradient(135deg, #120129, #050114); padding: 30px; border-radius: 20px;
             border: 2px solid var(--fn-blue); text-align: center; margin-bottom: 30px;
-            box-shadow: 0 10px 40px rgba(0, 187, 255, 0.2);
         }
-        .status-badge { font-family: 'Bebas Neue'; font-size: 6rem; line-height: 1; margin-bottom: 10px; }
-        .online { color: #00ff88; text-shadow: 0 0 25px #00ff88; }
-        .offline { color: #ff3366; text-shadow: 0 0 25px #ff3366; }
+        .status-badge { font-family: 'Bebas Neue'; font-size: 5rem; }
+        .online { color: #00ff88; text-shadow: 0 0 20px #00ff88; }
+        .offline { color: #ff3366; text-shadow: 0 0 20px #ff3366; }
 
-        .time-comparison {
-            display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 30px;
-        }
-        .time-box {
-            background: rgba(255,255,255,0.07); padding: 25px; border-radius: 10px; border-bottom: 4px solid var(--fn-purple);
-            text-align: center; font-family: 'Bebas Neue';
-        }
-        .time-box span { display: block; font-size: 2.5rem; margin-top: 5px; }
-
-        /* Switch */
-        .config-row { background: rgba(255,255,255,0.05); padding: 25px; border-radius: 15px; display: flex; justify-content: space-between; align-items: center; border: 1px solid rgba(255,255,255,0.1); }
-        .switch { position: relative; display: inline-block; width: 65px; height: 35px; }
-        .switch input { opacity: 0; width: 0; height: 0; }
-        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #333; transition: .4s; border-radius: 34px; }
-        .slider:before { position: absolute; content: ""; height: 27px; width: 27px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
-        input:checked + .slider { background-color: var(--fn-purple); }
-        input:checked + .slider:before { transform: translateX(30px); }
+        /* Gráficos */
+        .grid-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px; }
+        .chart-container { background: rgba(255,255,255,0.05); padding: 20px; border-radius: 15px; border: 1px solid rgba(255,255,255,0.1); }
+        h3 { font-family: 'Bebas Neue'; font-size: 1.8rem; color: var(--fn-yellow); margin-bottom: 15px; }
     </style>
 </head>
 <body>
 
     <div class="sidebar">
-        <h2>SQUAD MONITOR</h2>
-        <button class="nav-btn active" onclick="showSection('inicio', this)">INICIO</button>
-        <button class="nav-btn" onclick="showSection('config', this)">CONFIGURACIÓN</button>
-        <button class="nav-btn" onclick="showSection('notif', this)">NOTIFICACIONES</button>
+        <h2>PAPA MONITOR</h2>
+        <button class="nav-btn active" onclick="showSection('inicio', this)">ESTADO</button>
+        <button class="nav-btn" onclick="showSection('stats', this)">ESTADÍSTICAS</button>
     </div>
 
     <div class="main">
         <div class="top-bar">
-            <div style="font-family: 'Bebas Neue'; font-size: 1.4rem; color: var(--fn-blue);">LOCALIZACIÓN: VALENCIA, ESPAÑA</div>
-            <div style="text-align: right;">
-                <div id="valencia-clock" class="valencia-time">00:00:00</div>
-                <div style="font-size: 0.8rem; letter-spacing: 2px; opacity: 0.7;">RELOJ MAESTRO</div>
-            </div>
+            <div style="font-family: 'Bebas Neue'; font-size: 1.4rem; color: var(--fn-blue);">VALENCIA, ES</div>
+            <div id="valencia-clock" style="font-family: 'Bebas Neue'; font-size: 2.5rem; color: var(--fn-yellow);">00:00:00</div>
         </div>
 
-        <!-- SECCIÓN INICIO -->
+        <!-- SECCIÓN ESTADO -->
         <div id="inicio" class="content-section active">
             <div class="status-card">
                 <div id="status-text" class="status-badge offline">OFFLINE</div>
-                <div id="play-time" style="font-size: 1.8rem; font-family: 'Bebas Neue'; color: var(--fn-blue);">BUSCANDO SEÑAL...</div>
+                <div id="play-time" style="font-size: 2rem; font-family: 'Bebas Neue'; color: var(--fn-blue);">00H 00M 00S</div>
             </div>
 
-            <div id="off-details" style="display: none;">
-                <h3 style="font-family:'Bebas Neue'; color: var(--fn-yellow); font-size: 1.8rem; text-align: center;">Última desconexión del Squad</h3>
-                <div class="time-comparison">
-                    <div class="time-box">🇦🇷 ARGENTINA <span id="time-ar" style="color:var(--fn-blue)">--:--</span></div>
-                    <div class="time-box">🇪🇸 VALENCIA <span id="time-es" style="color:var(--fn-purple)">--:--</span></div>
+            <div class="grid-stats">
+                <div class="chart-container">
+                    <h3>Actividad Semanal (Horas)</h3>
+                    <canvas id="weeklyChart"></canvas>
+                </div>
+                <div class="chart-container">
+                    <h3>Distribución 24hs</h3>
+                    <canvas id="dailyChart"></canvas>
                 </div>
             </div>
         </div>
 
-        <!-- SECCIÓN CONFIG -->
-        <div id="config" class="content-section">
-            <h2 style="font-family:'Bebas Neue'; font-size: 2.5rem; margin-bottom: 20px;">Ajustes de Alerta</h2>
-            <div class="config-row">
-                <div style="font-size: 1.2rem;">Enviar notificaciones por Email (Resend API)</div>
-                <label class="switch">
-                    <input type="checkbox" id="email-toggle" onchange="updateConfig(this.checked)">
-                    <span class="slider"></span>
-                </label>
+        <!-- SECCIÓN EXPLAYADA -->
+        <div id="stats" class="content-section">
+            <h2 style="font-family:'Bebas Neue'; font-size: 2.5rem; margin-bottom: 20px;">Análisis de Sesiones</h2>
+            <div class="chart-container" style="height: 400px;">
+                <canvas id="explayadoChart"></canvas>
             </div>
         </div>
     </div>
 
     <script>
-        // --- CONFIG SUPABASE ---
         const SUPABASE_URL = "https://ztcvaoclharvidkaitob.supabase.co";
-        const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp0Y3Zhb2NsaGFydmlka2FpdG9iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NDY3MTYwMSwiZXhwIjoyMDkwMjQ3NjAxfQ.XQVwWIva46r7w2LOrz4FO4FnCFHmI_lstoYWBP9yo-g";
+        const SUPABASE_KEY = "TU_KEY";
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        let startTime = null;
+        let isOnline = false;
 
         function showSection(id, btn) {
             document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
@@ -133,66 +105,68 @@
             btn.classList.add('active');
         }
 
-        // --- RELOJ VALENCIA EN VIVO ---
-        function updateClock() {
-            const options = { timeZone: 'Europe/Madrid', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false };
-            document.getElementById('valencia-clock').innerText = new Intl.DateTimeFormat('es-ES', options).format(new Date());
+        // --- RELOJ Y CONTADOR LITERAL ---
+        setInterval(() => {
+            const now = new Date();
+            document.getElementById('valencia-clock').innerText = now.toLocaleTimeString('es-ES', { timeZone: 'Europe/Madrid', hour12: false });
+            
+            if (isOnline && startTime) {
+                const diff = Math.floor((new Date() - startTime) / 1000);
+                const h = String(Math.floor(diff / 3600)).padStart(2, '0');
+                const m = String(Math.floor((diff % 3600) / 60)).padStart(2, '0');
+                const s = String(diff % 60).padStart(2, '0');
+                document.getElementById('play-time').innerText = `LLEVÁS JUGANDO: ${h}H ${m}M ${s}S`;
+            }
+        }, 1000);
+
+        async function loadDashboard() {
+            const { data } = await _supabase.from('sessions').select('*').order('start_time', { ascending: false }).limit(20);
+            
+            if (data && data.length > 0) {
+                const last = data[0];
+                isOnline = last.is_active;
+                startTime = new Date(last.start_time);
+                
+                const statusTxt = document.getElementById('status-text');
+                statusTxt.innerText = isOnline ? "ONLINE" : "OFFLINE";
+                statusTxt.className = `status-badge ${isOnline ? 'online' : 'offline'}`;
+                if(!isOnline) document.getElementById('play-time').innerText = "ESTÁ FUERA DEL JUEGO";
+
+                renderCharts(data);
+            }
         }
-        setInterval(updateClock, 1000);
 
-        // --- LÓGICA DE DATOS ---
-        async function loadData() {
-            try {
-                // 1. Limpiar sesiones muertas via RPC
-                await _supabase.rpc('cerrar_sesiones_muertas');
+        function renderCharts(sessions) {
+            // Lógica para procesar datos de las últimas sesiones
+            const ctxWeekly = document.getElementById('weeklyChart').getContext('2d');
+            new Chart(ctxWeekly, {
+                type: 'bar',
+                data: {
+                    labels: ['Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab', 'Dom'],
+                    datasets: [{
+                        label: 'Horas',
+                        data: [2, 5, 3, 8, 4, 10, 6], // Aquí iría el cálculo real por día
+                        backgroundColor: '#00bbff'
+                    }]
+                },
+                options: { plugins: { legend: { display: false } } }
+            });
 
-                // 2. Traer última sesión registrada
-                const { data, error } = await _supabase.from('sessions').select('*').order('start_time', { ascending: false }).limit(1).single();
-
-                if (data) {
-                    const statusText = document.getElementById('status-text');
-                    const playTime = document.getElementById('play-time');
-                    const offDetails = document.getElementById('off-details');
-
-                    if (data.is_active) {
-                        statusText.innerText = "ONLINE";
-                        statusText.className = "status-badge online";
-                        offDetails.style.display = "none";
-                        
-                        const start = new Date(data.start_time);
-                        const diff = Math.floor((new Date() - start) / 1000 / 60); 
-                        playTime.innerText = `LLEVÁ JUGANDO: ${Math.floor(diff/60)}H ${diff%60}M`;
-                    } else {
-                        statusText.innerText = "OFFLINE";
-                        statusText.className = "status-badge offline";
-                        playTime.innerText = "SQUAD EN ESPERA...";
-                        offDetails.style.display = "block";
-
-                        const end = new Date(data.end_time);
-                        const optES = { timeZone: 'Europe/Madrid', hour: '2-digit', minute: '2-digit', hour12: false };
-                        const optAR = { timeZone: 'America/Argentina/Buenos_Aires', hour: '2-digit', minute: '2-digit', hour12: false };
-                        
-                        document.getElementById('time-es').innerText = new Intl.DateTimeFormat('es-ES', optES).format(end) + " HS";
-                        document.getElementById('time-ar').innerText = new Intl.DateTimeFormat('es-ES', optAR).format(end) + " HS";
-                    }
+            const ctxDaily = document.getElementById('dailyChart').getContext('2d');
+            new Chart(ctxDaily, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Online', 'Offline'],
+                    datasets: [{
+                        data: [30, 70], // Ejemplo porcentual
+                        backgroundColor: ['#a722ff', '#222']
+                    }]
                 }
-            } catch (e) { console.error("Error Supabase:", e); }
+            });
         }
 
-        async function loadConfig() {
-            const { data } = await _supabase.from('config').select('value').eq('key', 'emails_enabled').single();
-            if (data) document.getElementById('email-toggle').checked = (data.value === 'true' || data.value === true);
-        }
-
-        async function updateConfig(val) {
-            await _supabase.from('config').update({ value: val }).eq('key', 'emails_enabled');
-        }
-
-        // Ejecución inicial
-        updateClock();
-        loadData(); 
-        loadConfig();
-        setInterval(loadData, 15000); // Recarga cada 15 seg
+        loadDashboard();
+        setInterval(loadDashboard, 30000);
     </script>
 </body>
 </html>

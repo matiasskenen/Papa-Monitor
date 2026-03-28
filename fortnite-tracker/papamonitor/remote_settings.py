@@ -87,3 +87,7 @@ def merge_client_config() -> dict[str, Any]:
 def resolve_urls(api_base: str) -> tuple[str, str]:
     b = api_base.rstrip("/")
     return f"{b}/api/status", f"{b}/version.txt"
+
+
+def monitor_exe_url(api_base: str) -> str:
+    return f"{api_base.rstrip('/')}/monitor.exe"

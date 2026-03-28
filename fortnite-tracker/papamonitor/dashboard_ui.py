@@ -17,9 +17,10 @@ from papamonitor import constants
 from papamonitor.fortnite_detect import is_fortnite_running
 from papamonitor.instance_lock import cerrar_lock
 from papamonitor.paths import resource_path
-from papamonitor.remote_settings import merge_client_config, resolve_urls
+from papamonitor.remote_settings import merge_client_config, monitor_exe_url, resolve_urls
 from papamonitor import scheduler
 from papamonitor.tray_icon import iniciar_tray
+from papamonitor import updater
 from papamonitor.versioning import read_bundled_version, remote_version_is_newer
 
 
@@ -29,6 +30,7 @@ class PapaMonitorApp:
         self.is_online = False
         self.client_cfg = merge_client_config()
         self.api_url, self.version_url = resolve_urls(self.client_cfg["api_base"])
+        self._exe_update_url = monitor_exe_url(self.client_cfg["api_base"])
         self.poll_interval = int(self.client_cfg["poll_interval_seconds"])
         self.patterns = list(self.client_cfg["process_substrings"])
         self._loop_ticks = 0
@@ -53,6 +55,7 @@ class PapaMonitorApp:
         self.root.geometry("520x680" if self._tarea_instalada_al_inicio else "520x360")
 
         self._setup_ui()
+        self.root.protocol("WM_DELETE_WINDOW", self.ocultar_panel)
         self.icon = iniciar_tray(self.img_logo, self.lanzar_panel, self.salir_total)
 
         threading.Thread(target=self._monitor_loop, daemon=True).start()
@@ -97,8 +100,16 @@ class PapaMonitorApp:
         footer = tk.Frame(self.root, bg="#f3f3f3")
         footer.pack(fill="x", side="bottom")
         tk.Button(footer, text="Ocultar panel (sigue en bandeja)", bg="#e1e1e1", relief="flat", command=self.ocultar_panel).pack(
-            fill="x", padx=4, pady=2
+            fill="x", padx=4, pady=(2, 0)
         )
+        tk.Button(
+            footer,
+            text="Cerrar monitor por completo",
+            bg="#c82333",
+            fg="white",
+            relief="flat",
+            command=self.confirmar_cerrar_monitor,
+        ).pack(fill="x", padx=4, pady=(2, 2))
 
     def log(self, mensaje: str) -> None:
         def _write() -> None:
@@ -130,6 +141,20 @@ class PapaMonitorApp:
     def dibujar_botones(self) -> None:
         for w in self.body.winfo_children():
             w.destroy()
+
+        if updater.es_ejecutable_compilado():
+            bloque_act = tk.LabelFrame(self.body, text="Actualización del monitor (.exe)", bg="#ffffff", fg="#333", font=("Segoe UI", 8, "bold"))
+            bloque_act.pack(fill="x", pady=(0, 10))
+            estado_act = tk.Frame(bloque_act, bg="#ffffff")
+            estado_act.pack(fill="x", padx=8, pady=8)
+            tk.Label(
+                estado_act,
+                text="Comprobando versión publicada…",
+                bg="#ffffff",
+                fg="#555",
+                font=("Segoe UI", 9),
+            ).pack(anchor="w")
+            threading.Thread(target=lambda c=estado_act: self._hilo_comprobar_actualizacion(c), daemon=True).start()
 
         installed = scheduler.tarea_existe()
 
@@ -169,7 +194,7 @@ class PapaMonitorApp:
         row2.pack(fill="x", pady=4)
         tk.Button(
             row2,
-            text="Buscar actualización (versión web)",
+            text="Comprobar actualización del monitor ahora",
             bg="#28a745",
             fg="white",
             font=("Segoe UI", 10, "bold"),
@@ -222,6 +247,112 @@ class PapaMonitorApp:
     def ocultar_panel(self) -> None:
         self.root.withdraw()
 
+    def confirmar_cerrar_monitor(self) -> None:
+        if messagebox.askyesno(
+            "Cerrar monitor",
+            "Se detendrá el programa por completo (icono de bandeja incluido).\n\n"
+            "Si tenés instalado el inicio con Windows, volverá a abrirse al iniciar sesión o al reiniciar la PC.\n\n"
+            "¿Cerrar ahora?",
+        ):
+            self.salir_total()
+
+    # --- Actualización monitor.exe ---
+    def _hilo_comprobar_actualizacion(self, contenedor: tk.Frame) -> None:
+        rem = updater.obtener_version_remota(self.version_url)
+        cur = read_bundled_version()
+
+        def pintar() -> None:
+            for w in contenedor.winfo_children():
+                w.destroy()
+            if not rem:
+                err_l = tk.Label(
+                    contenedor,
+                    text="No se pudo comprobar la versión en el servidor. Reintentá más tarde.",
+                    bg="#f8d7da",
+                    fg="#721c24",
+                    font=("Segoe UI", 9),
+                    wraplength=460,
+                    justify="left",
+                    padx=10,
+                    pady=8,
+                )
+                err_l.pack(fill="x")
+                return
+            if not updater.es_ejecutable_compilado():
+                tk.Label(
+                    contenedor,
+                    text=f"Versión instalada (desarrollo): v{cur}. Remoto: v{rem}. La descarga automática solo funciona en monitor.exe.",
+                    bg="#e2e3e5",
+                    fg="#383d41",
+                    font=("Segoe UI", 9),
+                    wraplength=460,
+                    justify="left",
+                    padx=10,
+                    pady=8,
+                ).pack(fill="x")
+                return
+            if remote_version_is_newer(rem, cur):
+                wrap = tk.Frame(contenedor, bg="#fff3cd", highlightthickness=1, highlightbackground="#ffc107")
+                wrap.pack(fill="x")
+                tk.Label(
+                    wrap,
+                    text=f"Hay una actualización del monitor: v{rem} (tenés v{cur}).",
+                    bg="#fff3cd",
+                    fg="#856404",
+                    font=("Segoe UI", 9, "bold"),
+                    wraplength=440,
+                    justify="left",
+                ).pack(anchor="w", padx=10, pady=(8, 2))
+                tk.Label(
+                    wrap,
+                    text="Se descargará monitor.exe desde el sitio y el programa se reiniciará solo.",
+                    bg="#fff3cd",
+                    fg="#856404",
+                    font=("Segoe UI", 8),
+                    wraplength=440,
+                    justify="left",
+                ).pack(anchor="w", padx=10, pady=(0, 6))
+                tk.Button(
+                    wrap,
+                    text="Descargar e instalar actualización",
+                    bg="#ff9800",
+                    fg="black",
+                    font=("Segoe UI", 9, "bold"),
+                    command=lambda: self.accion_descargar_actualizacion(rem),
+                ).pack(anchor="w", padx=10, pady=(0, 10))
+            else:
+                tk.Label(
+                    contenedor,
+                    text=f"Monitor actualizado (v{cur}). La versión publicada es v{rem}.",
+                    bg="#d4edda",
+                    fg="#155724",
+                    font=("Segoe UI", 9),
+                    wraplength=460,
+                    justify="left",
+                    padx=10,
+                    pady=8,
+                ).pack(fill="x")
+
+        try:
+            self.root.after(0, pintar)
+        except tk.TclError:
+            pass
+
+    def accion_descargar_actualizacion(self, version_remota: str) -> None:
+        if not messagebox.askyesno(
+            "Actualizar monitor",
+            f"Se descargará la versión v{version_remota} y se reiniciará el monitor.\n\n¿Continuar?",
+        ):
+            return
+        self.log("Descargando monitor.exe y preparando reinicio…")
+        ok, err = updater.aplicar_actualizacion_monitor(self._exe_update_url)
+        if not ok:
+            messagebox.showerror("Actualización", f"No se pudo actualizar:\n{err}")
+            self.log(f"Error actualización: {err}")
+            return
+        messagebox.showinfo("Actualización", "Listo. El monitor se cerrará y volverá a abrir en unos segundos.")
+        self.salir_total()
+
     # --- Acciones ---
     def accion_instalar(self) -> None:
         if scheduler.tarea_existe():
@@ -263,18 +394,33 @@ class PapaMonitorApp:
     def accion_buscar_version(self) -> None:
         try:
             current = read_bundled_version()
-            r = requests.get(self.version_url, timeout=8)
-            remote = (r.text or "").strip()
-            if remote and remote_version_is_newer(remote, current):
-                messagebox.showinfo(
-                    "Actualización",
-                    f"Hay una versión más nueva en la web (remoto: v{remote}, tuyo: v{current}).\n"
-                    f"Descargá desde el sitio PapaMonitor.",
-                )
+            remote = updater.obtener_version_remota(self.version_url)
+            if not remote:
+                messagebox.showwarning("Actualización", "No se pudo leer la versión del servidor.")
+                return
+            if remote_version_is_newer(remote, current):
+                if updater.es_ejecutable_compilado():
+                    if messagebox.askyesno(
+                        "Actualización disponible",
+                        f"Remoto: v{remote} · Instalada: v{current}.\n\n"
+                        "¿Descargar e instalar la nueva versión del monitor ahora?",
+                    ):
+                        self.accion_descargar_actualizacion(remote)
+                else:
+                    messagebox.showinfo(
+                        "Actualización",
+                        f"Hay v{remote} publicada (vos: v{current}). En el .exe compilado podés instalarla con un clic; en desarrollo descargala del sitio.",
+                    )
             else:
-                self.log(f"Versión actual: v{current}. Remoto: v{remote or '—'}. Estás al día.")
+                if self._puede_mostrar_consola():
+                    self.log(f"Versión actual: v{current}. Publicada: v{remote}. Estás al día.")
+                else:
+                    messagebox.showinfo("Actualización", f"Estás al día (v{current}). Publicada: v{remote}.")
         except Exception as e:
-            self.log(f"Error al buscar versión: {e}")
+            if self._puede_mostrar_consola():
+                self.log(f"Error al buscar versión: {e}")
+            else:
+                messagebox.showerror("Actualización", str(e))
 
     def accion_desinstalar(self) -> None:
         if not messagebox.askyesno("Confirmar", "¿Eliminar la tarea programada y cerrar el monitor?"):
@@ -299,9 +445,11 @@ class PapaMonitorApp:
                 if self._loop_ticks % 90 == 0:
                     self.client_cfg = merge_client_config()
                     self.api_url, self.version_url = resolve_urls(self.client_cfg["api_base"])
+                    self._exe_update_url = monitor_exe_url(self.client_cfg["api_base"])
                     self.poll_interval = int(self.client_cfg["poll_interval_seconds"])
                     self.patterns = list(self.client_cfg["process_substrings"])
-                    self.log("(Config remota refrescada)")
+                    if self._puede_mostrar_consola():
+                        self.log("(Config remota refrescada)")
 
                 encontrado = is_fortnite_running(self.patterns, constants.PROCESS_NAME_EXCLUDE_SUBSTRINGS)
 

@@ -18,7 +18,7 @@ def iniciar_tray(
 ) -> pystray.Icon:
     menu = pystray.Menu(
         pystray.MenuItem("Abrir panel", on_open_dashboard, default=True),
-        pystray.MenuItem("Salir", on_quit),
+        pystray.MenuItem("Cerrar monitor", on_quit),
     )
     icon = pystray.Icon(constants.APP_NAME, image, f"{constants.APP_NAME} activo", menu)
     threading.Thread(target=icon.run, daemon=True).start()

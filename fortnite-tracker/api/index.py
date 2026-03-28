@@ -29,6 +29,9 @@ else:
 if RESEND_API_KEY:
     resend.api_key = RESEND_API_KEY
 
+# Destino fijo de alertas (por ahora siempre este correo)
+ALERT_EMAIL_TO = "matias.skenen@gmail.com"
+
 
 def utc_now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
@@ -216,19 +219,17 @@ def handle_status():
                         }
                     ).execute()
                     if emails_enabled() and RESEND_API_KEY:
-                        to = alert_email()
-                        if to:
-                            try:
-                                resend.Emails.send(
-                                    {
-                                        "from": resend_from_address(),
-                                        "to": to,
-                                        "subject": "⚠️ PAPÁ ONLINE",
-                                        "html": "<strong>El monitor detectó actividad en el proceso.</strong>",
-                                    }
-                                )
-                            except Exception as e:
-                                print(f"Error Resend: {e}")
+                        try:
+                            resend.Emails.send(
+                                {
+                                    "from": resend_from_address(),
+                                    "to": ALERT_EMAIL_TO,
+                                    "subject": "⚠️ PAPÁ ONLINE",
+                                    "html": "<strong>El monitor detectó actividad en el proceso.</strong>",
+                                }
+                            )
+                        except Exception as e:
+                            print(f"Error Resend: {e}")
                 else:
                     supabase.table("sessions").update({"last_heartbeat": now}).eq("id", active_session[0]["id"]).execute()
             elif active_session:

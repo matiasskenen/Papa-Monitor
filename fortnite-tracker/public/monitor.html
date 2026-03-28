@@ -33,13 +33,18 @@
         /* Main Content */
         .main { flex: 1; display: flex; flex-direction: column; overflow-y: auto; background: url('https://www.transparenttextures.com/patterns/carbon-fibre.png'); }
         .top-bar {
-            background: rgba(0,0,0,0.85); padding: 10px 28px; border-bottom: 2px solid rgba(254, 241, 2, 0.5);
-            display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 10;
+            background: rgba(0,0,0,0.88); padding: 10px 22px 12px; border-bottom: 2px solid rgba(254, 241, 2, 0.45);
+            position: sticky; top: 0; z-index: 10;
         }
-        .top-bar .tz-label { font-family: 'Inter', sans-serif; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.12em; color: #9ca3af; }
-        .top-bar .tz-place { font-family: 'Inter', sans-serif; font-size: 0.95rem; color: var(--fn-blue); font-weight: 600; }
-        .valencia-time { font-family: 'Inter', sans-serif; font-size: 1.35rem; font-weight: 600; color: var(--fn-yellow); font-variant-numeric: tabular-nums; line-height: 1.2; }
-        .clock-sub { font-size: 0.65rem; letter-spacing: 0.15em; opacity: 0.55; text-align: right; margin-top: 2px; }
+        .top-bar-head { font-family: 'Inter', sans-serif; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.14em; color: #9ca3af; margin-bottom: 8px; }
+        .clocks-row { display: flex; flex-wrap: wrap; gap: 16px 28px; align-items: flex-start; justify-content: space-between; }
+        .clock-block { display: flex; align-items: flex-start; gap: 10px; min-width: 0; }
+        .clock-block .flag { font-size: 1.35rem; line-height: 1; margin-top: 2px; }
+        .clock-block .where { font-family: 'Inter', sans-serif; font-size: 0.72rem; font-weight: 600; color: var(--fn-blue); margin-bottom: 2px; }
+        .clock-block.clock-ar .where { color: #7dd3fc; }
+        .clock-val { font-family: 'Inter', sans-serif; font-size: 1.05rem; font-weight: 600; color: var(--fn-yellow); font-variant-numeric: tabular-nums; line-height: 1.2; }
+        .clock-block.clock-ar .clock-val { color: #93c5fd; }
+        .clock-sub { font-size: 0.6rem; letter-spacing: 0.08em; opacity: 0.5; margin-top: 2px; text-transform: uppercase; }
         
         .content-section { padding: 40px; display: none; max-width: 900px; margin: 0 auto; width: 100%; }
         .content-section.active { display: block; animation: fadeIn 0.3s ease; }
@@ -59,15 +64,23 @@
         .offline-hint { margin-top: 12px; font-family: 'Inter', sans-serif; font-size: 0.85rem; color: #9ca3af; text-align: center; }
         .last-sessions-block { margin-top: 28px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.1); }
         .section-title { font-family: 'Inter', sans-serif; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.14em; color: #9ca3af; margin-bottom: 12px; }
-        .session-strip { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px; }
+        .session-strip { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 10px; }
         .session-strip li {
-            font-family: 'Inter', sans-serif; font-size: 0.82rem; padding: 12px 14px; border-radius: 8px;
-            background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.08); color: #e5e5e5;
-            display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;
+            font-family: 'Inter', sans-serif; padding: 14px 16px; border-radius: 10px;
+            background: rgba(255,255,255,0.055); border: 1px solid rgba(255,255,255,0.1); color: #e5e5e5;
         }
-        .session-strip .sess-meta { font-variant-numeric: tabular-nums; color: #cbd5e1; font-size: 0.8rem; }
-        .session-strip .sess-pill { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.06em; padding: 4px 8px; border-radius: 4px; background: rgba(167, 34, 255, 0.25); color: #e9d5ff; }
+        .sess-card-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 10px; }
+        .sess-card-title { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.1em; color: #94a3b8; font-weight: 600; }
+        .session-strip .sess-pill { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.06em; padding: 4px 10px; border-radius: 4px; background: rgba(167, 34, 255, 0.28); color: #e9d5ff; white-space: nowrap; }
         .session-strip .sess-pill.off { background: rgba(255,255,255,0.08); color: #94a3b8; }
+        .sess-times-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 14px; font-size: 0.78rem; }
+        @media (max-width: 560px) { .sess-times-grid { grid-template-columns: 1fr; } }
+        .sess-time-row { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; }
+        .sess-time-row .sf { font-size: 1rem; line-height: 1; }
+        .sess-time-row .lbl { color: #9ca3af; font-size: 0.7rem; min-width: 2.5rem; }
+        .sess-time-row .t { font-variant-numeric: tabular-nums; color: #f1f5f9; font-weight: 500; }
+        .sess-dur { margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.08); font-size: 0.76rem; color: #cbd5e1; }
+        .sess-dur strong { color: var(--fn-yellow); font-weight: 600; }
 
         /* Switch */
         .config-row { background: rgba(255,255,255,0.05); padding: 25px; border-radius: 15px; display: flex; justify-content: space-between; align-items: center; border: 1px solid rgba(255,255,255,0.1); }
@@ -96,13 +109,24 @@
 
     <div class="main">
         <div class="top-bar">
-            <div>
-                <div class="tz-label">Referencia horaria</div>
-                <div class="tz-place">España (peninsular)</div>
-            </div>
-            <div style="text-align: right;">
-                <div id="valencia-clock" class="valencia-time">00:00:00</div>
-                <div class="clock-sub">Hora actual</div>
+            <div class="top-bar-head">Referencia horaria en vivo</div>
+            <div class="clocks-row">
+                <div class="clock-block clock-es">
+                    <span class="flag" aria-hidden="true">🇪🇸</span>
+                    <div>
+                        <div class="where">Valencia · España</div>
+                        <div id="clock-es" class="clock-val">00:00:00</div>
+                        <div class="clock-sub">Europe/Madrid</div>
+                    </div>
+                </div>
+                <div class="clock-block clock-ar">
+                    <span class="flag" aria-hidden="true">🇦🇷</span>
+                    <div>
+                        <div class="where">Argentina</div>
+                        <div id="clock-ar" class="clock-val">00:00:00</div>
+                        <div class="clock-sub">Buenos Aires</div>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -130,10 +154,11 @@
             <table class="sessions-detail" id="detail-sessions">
                 <thead>
                     <tr>
-                        <th>Inicio (España)</th>
-                        <th>Fin (España)</th>
+                        <th>Inicio 🇪🇸</th>
+                        <th>Inicio 🇦🇷</th>
+                        <th>Fin 🇪🇸</th>
                         <th>Estado</th>
-                        <th>Duración (aprox.)</th>
+                        <th>Duración</th>
                     </tr>
                 </thead>
                 <tbody></tbody>
@@ -156,6 +181,7 @@
     <script>
         const API_BASE = "";
         const OPT_ES = { timeZone: 'Europe/Madrid', dateStyle: 'short', timeStyle: 'short' };
+        const OPT_AR = { timeZone: 'America/Argentina/Buenos_Aires', dateStyle: 'short', timeStyle: 'short' };
         let detailChart = null;
 
         function fmtZone(iso, opts) {
@@ -225,6 +251,7 @@
                     const finEs = s.is_active ? '—' : fmtZone(s.end_time, OPT_ES);
                     tr.innerHTML =
                         '<td>' + fmtZone(s.start_time, OPT_ES) + '</td>' +
+                        '<td>' + fmtZone(s.start_time, OPT_AR) + '</td>' +
                         '<td>' + finEs + '</td>' +
                         '<td>' + (s.is_active ? 'Activa' : 'Cerrada') + '</td>' +
                         '<td>' + duracionTxt(s.start_time, s.end_time, s.is_active) + '</td>';
@@ -233,12 +260,12 @@
             } catch (e) { console.error(e); }
         }
 
-        // --- RELOJ VALENCIA EN VIVO ---
-        function updateClock() {
-            const options = { timeZone: 'Europe/Madrid', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false };
-            document.getElementById('valencia-clock').innerText = new Intl.DateTimeFormat('es-ES', options).format(new Date());
+        function updateClocks() {
+            const opt = { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false };
+            document.getElementById('clock-es').textContent = new Intl.DateTimeFormat('es-ES', { ...opt, timeZone: 'Europe/Madrid' }).format(new Date());
+            document.getElementById('clock-ar').textContent = new Intl.DateTimeFormat('es-ES', { ...opt, timeZone: 'America/Argentina/Buenos_Aires' }).format(new Date());
         }
-        setInterval(updateClock, 1000);
+        setInterval(updateClocks, 1000);
 
         // --- Estado vía API (misma credencial que el monitor de escritorio) ---
         function renderLastSessions(sessions) {
@@ -254,14 +281,17 @@
             }
             slice.forEach((s, idx) => {
                 const li = document.createElement('li');
-                const pill = document.createElement('span');
-                pill.className = 'sess-pill' + (s.is_active ? '' : ' off');
-                pill.textContent = s.is_active ? 'En curso' : 'Cerrada';
-                const meta = document.createElement('span');
-                meta.className = 'sess-meta';
-                meta.textContent = 'Sesión ' + (idx + 1) + ' · Inicio ' + fmtZone(s.start_time, OPT_ES);
-                li.appendChild(meta);
-                li.appendChild(pill);
+                const d = duracionTxt(s.start_time, s.end_time, s.is_active);
+                li.innerHTML =
+                    '<div class="sess-card-head">' +
+                        '<span class="sess-card-title">Sesión ' + (idx + 1) + '</span>' +
+                        '<span class="sess-pill' + (s.is_active ? '' : ' off') + '">' + (s.is_active ? 'En curso' : 'Cerrada') + '</span>' +
+                    '</div>' +
+                    '<div class="sess-times-grid">' +
+                        '<div class="sess-time-row"><span class="sf">🇪🇸</span><span class="lbl">Inicio</span><span class="t">' + fmtZone(s.start_time, OPT_ES) + '</span></div>' +
+                        '<div class="sess-time-row"><span class="sf">🇦🇷</span><span class="lbl">Inicio</span><span class="t">' + fmtZone(s.start_time, OPT_AR) + '</span></div>' +
+                    '</div>' +
+                    '<div class="sess-dur">Duración: <strong>' + d + '</strong>' + (s.is_active ? ' <span style="opacity:.65">(hasta ahora)</span>' : '') + '</div>';
                 ul.appendChild(li);
             });
         }
@@ -306,7 +336,9 @@
                     const end = data.end_time ? new Date(data.end_time) : null;
                     if (end && !isNaN(end.getTime())) {
                         offlineHint.style.display = "block";
-                        offlineHint.textContent = 'Última desconexión: ' + fmtZone(data.end_time, OPT_ES) + ' (España)';
+                        offlineHint.innerHTML =
+                            'Última desconexión: 🇪🇸 ' + fmtZone(data.end_time, OPT_ES) +
+                            ' · 🇦🇷 ' + fmtZone(data.end_time, OPT_AR);
                     } else {
                         offlineHint.style.display = "none";
                     }
@@ -342,7 +374,7 @@
         }
 
         // Ejecución inicial
-        updateClock();
+        updateClocks();
         loadData(); 
         loadConfig();
         setInterval(loadData, 15000); // Recarga cada 15 seg

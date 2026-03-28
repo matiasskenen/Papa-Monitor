@@ -5,43 +5,53 @@ from resend import Emails
 
 app = Flask(__name__)
 
-# Inicialización con manejo de errores
+# Configuración de clientes con variables de entorno
 try:
     url = os.environ.get("SUPABASE_URL")
     key = os.environ.get("SUPABASE_KEY")
     supabase = create_client(url, key)
     RESEND_API_KEY = os.environ.get("RESEND_KEY")
 except Exception as e:
-    print(f"Error inicializando clientes: {e}")
+    print(f"Error inicializando: {e}")
 
-@app.route('/api/status', methods=['POST'])
+@app.route('/api/status', methods=['GET', 'POST'])
 def handle_status():
+    # --- MÉTODO GET: Para que la página web vea los datos ---
+    if request.method == 'GET':
+        try:
+            # Traemos las últimas 10 sesiones ordenadas por la más reciente
+            res = supabase.table("sessions").select("*").order("start_time", desc=True).limit(10).execute()
+            return jsonify(res.data), 200
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    # --- MÉTODO POST: Para que el monitor mande el Online/Offline ---
     try:
         data = request.json
         is_online = data.get("is_online", False)
         
-        # 1. Intentar leer de Supabase
+        # Buscamos si hay alguna sesión marcada como activa
         res = supabase.table("sessions").select("*").eq("is_active", True).execute()
         active_session = res.data
         
         if is_online and not active_session:
-            # 2. Intentar Insertar
+            # INICIO DE SESIÓN
             supabase.table("sessions").insert({"is_active": True}).execute()
             
-            # 3. Intentar mandar Mail (si falla el mail, que no rompa el resto)
+            # Envío de mail opcional (Resend)
             try:
                 if RESEND_API_KEY:
                     Emails.send({
                         "from": "FortniteTracker <onboarding@resend.dev>",
-                        "to": ["tu-email@gmail.com"], # <--- CAMBIÁ ESTO
-                        "subject": "⚠️ PAPÁ ONLINE",
-                        "html": "<strong>Se conectó al Fortnite.</strong>"
+                        "to": ["tu-mail@gmail.com"], # <--- PONÉ TU MAIL REAL ACÁ
+                        "subject": "⚠️ PAPÁ SE CONECTÓ",
+                        "html": "<strong>El viejo acaba de abrir el Fortnite.</strong>"
                     }, api_key=RESEND_API_KEY)
-            except Exception as mail_err:
-                print(f"Error enviando mail: {mail_err}")
+            except:
+                pass
                 
         elif not is_online and active_session:
-            # 4. Intentar Cerrar Sesión
+            # CIERRE DE SESIÓN
             session_id = active_session[0]['id']
             supabase.table("sessions").update({
                 "is_active": False, 
@@ -51,6 +61,5 @@ def handle_status():
         return jsonify({"status": "ok"}), 200
 
     except Exception as e:
-        # Esto va a imprimir el error real en los Logs de Vercel
-        print(f"ERROR DETECTADO: {str(e)}")
+        print(f"Error en POST: {str(e)}")
         return jsonify({"error": str(e)}), 500

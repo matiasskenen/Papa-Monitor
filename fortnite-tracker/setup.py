@@ -35,7 +35,7 @@ class InstallerApp:
         # 1. Crear carpeta
         if not os.path.exists(APP_PATH): os.makedirs(APP_PATH)
         self.log("Instalando librerías necesarias...", 30)
-        run_cmd("pip install psutil requests pystray Pillow")
+        run_cmd("pip install psutil requests pystray Pillow pywebview")
         
         # 2. Mover el archivo (esto asume que el monitor.py está en la misma carpeta que el setup)
         self.log("Copiando archivos...", 60)

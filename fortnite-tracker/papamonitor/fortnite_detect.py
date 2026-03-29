@@ -5,14 +5,14 @@ import psutil
 
 def is_fortnite_running(process_substrings: list[str], exclude_substrings: tuple[str, ...]) -> bool:
     """
-    Detecta si el proceso de Fortnite existe Y consume más de 4GB de RAM (RSS).
+    Detecta si el proceso de Fortnite existe Y consume más de 3GB de RAM (RSS).
     """
     needles = [p.lower().replace(".exe", "") for p in process_substrings if p]
     bad = tuple(x.lower() for x in exclude_substrings)
-    # 4GB en Bytes (4 * 1024 * 1024 * 1024)
-    THRESHOLD_BYTES = 4 * 1024**3
+    
+    # 3GB en Bytes (3 * 1024 * 1024 * 1024)
+    THRESHOLD_BYTES = 3 * 1024**3
 
-    # Agregamos 'memory_info' a la iteración para optimizar performance
     for proc in psutil.process_iter(["name", "pid", "memory_info"]):
         try:
             name = (proc.info.get("name") or "").lower()
@@ -24,11 +24,11 @@ def is_fortnite_running(process_substrings: list[str], exclude_substrings: tuple
             name_base = name.replace(".exe", "")
             match_found = False
 
-            # Validación por nombre
+            # 1. Validación por nombre
             if any(n and (n in name or n in name_base) for n in needles):
                 match_found = True
             
-            # Validación por ruta de ejecutable (si el nombre falló)
+            # 2. Validación por ruta de ejecutable (si el nombre falló)
             if not match_found:
                 try:
                     exe = (proc.exe() or "").lower()
@@ -37,9 +37,10 @@ def is_fortnite_running(process_substrings: list[str], exclude_substrings: tuple
                 except (psutil.Error, OSError, NotImplementedError):
                     pass
 
-            # Si hubo match, chequeamos que el consumo de RAM supere el umbral
+            # 3. Solo si hubo coincidencia de nombre, chequeamos RAM
             if match_found:
                 mem_info = proc.info.get("memory_info")
+                # Solo retorna True si supera los 3GB
                 if mem_info and mem_info.rss > THRESHOLD_BYTES:
                     return True
 

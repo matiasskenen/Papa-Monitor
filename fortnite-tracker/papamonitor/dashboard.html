@@ -472,7 +472,8 @@
     }
 
     function setEmailState(isEnabled) {
-        document.getElementById('email-toggle').checked = !!isEnabled;
+        let el = document.getElementById('email-toggle');
+        if (el) el.checked = !!isEnabled;
     }
 
     function handleEmailToggle(el) {

@@ -197,6 +197,11 @@ class PapaMonitorApp:
                     self.window.evaluate_js(f"showUpdateBanner('v{remote}', true)")
             else:
                 self.log(f"Estás al día (v{current}).", "SYS", "green")
+                if self.window:
+                    try:
+                        self.window.evaluate_js("switchTab('terminal')")
+                    except Exception:
+                        pass
         except Exception as e:
             self.log(f"Error comprobando actualizaciones: {e}", "ERR", "red")
             

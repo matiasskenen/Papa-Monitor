@@ -124,7 +124,9 @@
     </div>
 
     <div class="w-full max-w-[540px] glass rounded-[2.5rem] p-8 md:p-12 shadow-2xl relative overflow-hidden pointer-events-auto" style="-webkit-app-region: no-drag;">
-      <!-- Glow Efecto -->
+      <!-- FIN TAB TERMINAL -->
+
+
       <div class="absolute -top-20 -right-20 w-64 h-64 bg-blue-600/10 rounded-full blur-[80px]"></div>
       
       <div class="relative z-10 text-center">
@@ -201,6 +203,11 @@
         <button onclick="switchTab('overview')" id="btn-overview" class="sidebar-item active w-full flex items-center gap-3 px-8 py-4 text-sm font-bold transition-all hover:bg-white/5">
           <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>
           Panel Central
+        </button>
+        
+        <button onclick="switchTab('stats')" id="btn-stats" class="sidebar-item w-full flex items-center gap-3 px-8 py-4 text-sm font-bold transition-all hover:bg-white/5 text-neutral-500">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg>
+          Estadísticas
         </button>
 
         <button onclick="switchTab('profile')" id="btn-profile" class="sidebar-item w-full flex items-center gap-3 px-8 py-4 text-sm font-bold transition-all hover:bg-white/5 text-neutral-500">
@@ -366,6 +373,19 @@
               </div>
               <h2 class="text-3xl font-black italic tracking-tighter uppercase mb-1">User_Alpha</h2>
               <p class="text-blue-500 text-[10px] font-black uppercase tracking-[0.3em]">Premium Account</p>
+          </div>
+        </div>
+
+        <!-- Tab: Estadísticas -->
+        <div id="section-stats" class="tab-content hidden h-full space-y-8 animate-in slide-in-from-bottom-4 duration-500">
+          <div class="glass-card rounded-3xl p-10 flex flex-col items-center justify-center min-h-[350px]">
+              <div class="w-20 h-20 rounded-2xl bg-gradient-to-tr from-purple-600 to-indigo-900 flex items-center justify-center mb-6 shadow-[0_0_30px_rgba(168,85,247,0.3)]">
+                  <svg class="text-white w-10 h-10" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg>
+              </div>
+              <h2 class="text-2xl font-black italic tracking-tighter uppercase mb-4 text-white">Estadísticas</h2>
+              <div class="border border-purple-500/30 bg-purple-500/10 px-6 py-2 rounded-full">
+                  <p class="text-purple-400 text-[10px] font-black uppercase tracking-[0.2em]">Próximamente para la versión 1.0.5</p>
+              </div>
           </div>
         </div>
 

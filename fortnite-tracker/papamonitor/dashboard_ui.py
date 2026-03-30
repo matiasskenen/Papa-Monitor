@@ -40,6 +40,9 @@ class Api:
     def check_updates(self):
         self.app.accion_buscar_version()
 
+    def force_test_update(self):
+        self.app.accion_forzar_test_update()
+
     def desinstalar_tarea(self):
         self.app.accion_desinstalar_tarea()
 
@@ -205,11 +208,19 @@ class PapaMonitorApp:
         except Exception as e:
             self.log(f"Error comprobando actualizaciones: {e}", "ERR", "red")
             
+    def accion_forzar_test_update(self) -> None:
+        if self.window:
+            self.window.evaluate_js("scrollLogsView()")
+        self.log("Iniciando TEST de Actualización Forzada...", "SYS", "blue")
+        if self.window:
+             self.window.evaluate_js("showUpdateBanner('v9.9.9_TEST', true)")
+
     def forzar_actualizacion(self):
         remote = updater.obtener_version_remota(self.version_url)
-        if remote:
-            # Lanzamos en un hilo para no bloquear la interfaz web (Pywebview)
-            threading.Thread(target=self._do_auto_update, args=(remote,), daemon=True).start()
+        if not remote:
+            remote = "9.9.9_TEST"
+        # Lanzamos en un hilo para no bloquear la interfaz web (Pywebview)
+        threading.Thread(target=self._do_auto_update, args=(remote,), daemon=True).start()
             
     def _do_auto_update(self, rem_ver: str):
         if getattr(self, "icon", None):

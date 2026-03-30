@@ -1,12 +1,21 @@
 # -*- mode: python ; coding: utf-8 -*-
 
 
+from PyInstaller.utils.hooks import collect_data_files, collect_submodules
+
+hidden_imports = ['clr', 'clr_loader', 'pythonnet'] + collect_submodules('webview')
+
+dts = [('logo.png', '.'), ('public/version.txt', '.'), ('papamonitor', 'papamonitor')]
+dts += collect_data_files('clr_loader')
+dts += collect_data_files('pythonnet')
+dts += collect_data_files('webview')
+
 a = Analysis(
     ['monitor.py'],
     pathex=[],
     binaries=[],
-    datas=[('logo.png', '.'), ('public/version.txt', '.'), ('papamonitor', 'papamonitor')],
-    hiddenimports=[],
+    datas=dts,
+    hiddenimports=hidden_imports,
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],

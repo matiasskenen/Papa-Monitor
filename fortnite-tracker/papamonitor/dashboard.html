@@ -327,10 +327,14 @@
               <span class="w-1 h-4 bg-blue-500 rounded-full"></span>
               Control de Sistema
             </h2>
-            <div class="grid grid-cols-1 gap-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <button onclick="if(window.pywebview) window.pywebview.api.check_updates()" class="group flex flex-col items-center gap-1 p-5 rounded-2xl bg-neutral-900 border border-white/5 hover:border-blue-500/50 transition-all active:scale-[0.98]">
                 <span class="text-[10px] font-black text-neutral-500 uppercase tracking-widest">Sincronización</span>
                 <span class="text-sm font-black text-white uppercase tracking-widest italic">Buscar actualización</span>
+              </button>
+              <button onclick="if(window.pywebview) window.pywebview.api.force_test_update()" class="group flex flex-col items-center gap-1 p-5 rounded-2xl bg-red-900/10 border border-red-500/20 hover:border-red-500/50 hover:bg-red-900/20 transition-all active:scale-[0.98]">
+                <span class="text-[10px] font-black text-red-500 uppercase tracking-widest">Herramienta Debug</span>
+                <span class="text-sm font-black text-white uppercase tracking-widest italic">Testear Update</span>
               </button>
             </div>
           </section>

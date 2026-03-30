@@ -105,6 +105,15 @@ class PapaMonitorApp:
     def on_ui_ready(self):
         self.window.evaluate_js(f"setVersion('{read_bundled_version()}')")
         
+        # Enviar fecha de última actualización
+        try:
+            mtime = os.path.getmtime(sys.executable)
+            dt = datetime.fromtimestamp(mtime).strftime("%d/%m/%Y %H:%M:%S")
+        except Exception:
+            dt = "Desconocido"
+            
+        self.window.evaluate_js(f"setLastUpdateDate('{dt}')")
+        
         is_inst = "true" if scheduler.tarea_existe() else "false"
         self.window.evaluate_js(f"setInstallState({is_inst})")
         
@@ -194,7 +203,8 @@ class PapaMonitorApp:
     def forzar_actualizacion(self):
         remote = updater.obtener_version_remota(self.version_url)
         if remote:
-            self._do_auto_update(remote)
+            # Lanzamos en un hilo para no bloquear la interfaz web (Pywebview)
+            threading.Thread(target=self._do_auto_update, args=(remote,), daemon=True).start()
             
     def _do_auto_update(self, rem_ver: str):
         if getattr(self, "icon", None):
@@ -205,12 +215,31 @@ class PapaMonitorApp:
                 )
             except Exception:
                 pass
-        ok, err = updater.aplicar_actualizacion_monitor(self._exe_update_url)
+                
+        def progress_tracker(pct):
+            if self.window:
+                try:
+                    self.window.evaluate_js(f"if(window.updateDownloadProgress) window.updateDownloadProgress({pct})")
+                except Exception:
+                    pass
+
+        ok, err = updater.aplicar_actualizacion_monitor(self._exe_update_url, progress_callback=progress_tracker)
         if ok:
             self.log("Instalador preparado, reiniciando...", "SYS", "green")
+            if self.window:
+                try:
+                    self.window.evaluate_js("if(window.updateDownloadProgress) window.updateDownloadProgress(100, true)")
+                except Exception:
+                    pass
+            time.sleep(1.5) # Esperamos a que la animacion termine
             self.salir_total()
         else:
             self.log(f"Auto-update falló: {err}", "ERR", "red")
+            if self.window:
+                try:
+                    self.window.evaluate_js(f"if(window.resetDownloadUI) window.resetDownloadUI('{err}')")
+                except Exception:
+                    pass
 
     def _fetch_email_config_async(self):
         def f():

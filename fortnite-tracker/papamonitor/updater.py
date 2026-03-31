@@ -1,17 +1,18 @@
 """
-Updater rediseñado: usa un script Python separado como 'updater helper'
-que se escribe a disco y se lanza con pythonw / el mismo exe para evitar el bloqueo de Windows.
+Updater v3 — Estrategia "self-install"
 
 Flujo:
-1. Descarga monitor.exe nuevo a %TEMP%\PapaMonitor_new.exe
-2. Escribe un helper .py a %TEMP%\pm_apply_update.py
-3. Lanza el helper con pythonw.exe (siempre disponible en el entorno Python)
-   O si estamos compilados, lanza cmd /c con timeout y move
-4. El proceso actual llama os._exit(0)
-5. El helper espera, reemplaza, y relanza
+1. Descarga monitor.exe nuevo a %TEMP%\PapaMonitor_update_new.exe
+2. Escribe un marker con la ruta final donde debe instalarse
+3. Bat: espera que el proceso anterior muera, luego lanza directamente
+   el exe DESDE %TEMP% (sin reemplazar nada)
+4. El nuevo exe detecta que es una actualización (via marker) y se copia
+   a sí mismo a la ruta correcta, luego se relanza desde ahí.
 
-Adicionalmente: soporte para 'test mode' que solo verifica si hay update
-sin descargar nada (útil para el botón de prueba del dashboard).
+Ventajas vs estrategia de reemplazo:
+- No hay file-in-use: el bat nunca toca el exe en uso
+- La DLL carga desde %TEMP% normalmente (igual que antes)
+- Después de copiarse a la ruta final, se relanza cleanly
 """
 
 from __future__ import annotations
@@ -24,6 +25,8 @@ import tempfile
 import requests
 
 CREATE_NO_WINDOW = 0x08000000
+MARKER_FILENAME  = "PapaMonitor_install_marker.txt"
+NUEVO_EXE_NAME   = "PapaMonitor_update_new.exe"
 
 
 def es_ejecutable_compilado() -> bool:
@@ -58,49 +61,30 @@ def _descargar(url: str, destino: str, timeout: int = 180, progress_callback=Non
         os.replace(part, destino)
         return True, ""
     except Exception as e:
-        for p in (part,):
-            try:
-                if os.path.isfile(p):
-                    os.remove(p)
-            except OSError:
-                pass
+        try:
+            if os.path.isfile(part):
+                os.remove(part)
+        except OSError:
+            pass
         return False, str(e)
 
 
-def _escribir_helper_bat(nuevo_exe: str, exe_final: str) -> tuple[bool, str]:
+def _escribir_bat_self_install(nuevo_exe: str) -> tuple[bool, str]:
     """
-    Escribe un .bat robusto que:
-    1. Espera 6 segundos hasta que el proceso original cierre
-    2. Reintenta el move hasta 10 veces con pausa de 1s
-    3. Relanza el monitor
-    4. Se borra a sí mismo
+    Bat que espera a que el proceso anterior muera, luego lanza el nuevo
+    exe DESDE su ubicación en %TEMP%. El nuevo exe se instala a sí mismo.
     """
     bat_path = os.path.join(tempfile.gettempdir(), "PapaMonitor_apply_update.bat")
-    nuevo = os.path.normpath(nuevo_exe)
-    final = os.path.normpath(exe_final)
+    nuevo    = os.path.normpath(nuevo_exe)
 
     lineas = [
         "@echo off",
         "setlocal",
-        # Esperar que el proceso cierre
-        "timeout /t 6 /nobreak > nul",
-        # Limpiar carpetas _MEI viejas de PyInstaller (evita el error de DLL)
-        "for /d %%i in (\"%TEMP%\\_MEI*\") do rd /s /q \"%%i\" 2>nul",
-        # Reemplazar exe con reintentos
-        "set RETRIES=0",
-        ":retry",
-        f'move /Y "{nuevo}" "{final}" > nul 2>&1',
-        "if errorlevel 1 (",
-        "  set /a RETRIES+=1",
-        "  if %RETRIES% lss 10 (",
-        "    timeout /t 1 /nobreak > nul",
-        "    goto retry",
-        "  )",
-        "  echo ERROR: No se pudo reemplazar el ejecutable despues de 10 intentos",
-        "  exit /b 1",
-        ")",
-        # Relanzar monitor
-        f'start "" "{final}"',
+        # Esperar que el proceso original muera
+        "timeout /t 10 /nobreak > nul",
+        # Lanzar el nuevo exe DESDE %TEMP% (sin reemplazar el exe original)
+        f'start "" "{nuevo}"',
+        # Limpiar el bat
         'del /F /Q "%~f0"',
     ]
 
@@ -119,51 +103,112 @@ def _escribir_helper_bat(nuevo_exe: str, exe_final: str) -> tuple[bool, str]:
         return False, str(e)
 
 
+def _escribir_marker(ruta_final: str) -> None:
+    """Guarda la ruta de instalación para que el nuevo exe sepa a dónde copiarse."""
+    marker = os.path.join(tempfile.gettempdir(), MARKER_FILENAME)
+    with open(marker, "w", encoding="utf-8") as f:
+        f.write(ruta_final)
+
+
+def leer_y_borrar_marker() -> str | None:
+    """
+    Llamar al inicio del proceso.
+    Si existe el marker, significa que somos la actualización descargada.
+    Devuelve la ruta destino o None si no hay marker.
+    """
+    marker = os.path.join(tempfile.gettempdir(), MARKER_FILENAME)
+    if not os.path.isfile(marker):
+        return None
+    try:
+        ruta = open(marker, encoding="utf-8").read().strip()
+        os.remove(marker)
+        return ruta or None
+    except OSError:
+        return None
+
+
+def aplicar_self_install(ruta_destino: str) -> None:
+    """
+    Llamar cuando leer_y_borrar_marker() devuelve una ruta.
+    Copia este exe a ruta_destino y re-lanza desde ahí.
+    """
+    import shutil
+    import time
+
+    exe_actual = os.path.abspath(sys.executable)
+    destino    = os.path.normpath(ruta_destino)
+
+    if exe_actual == destino:
+        return  # ya estamos en la ruta correcta
+
+    # Reintentos de copia por si el exe destino aún está bloqueado brevemente
+    for intento in range(15):
+        try:
+            shutil.copy2(exe_actual, destino)
+            break
+        except OSError:
+            time.sleep(1)
+    else:
+        # Si no se pudo copiar, seguimos corriendo desde %TEMP% (mejor que nada)
+        return
+
+    # Relanzar desde la ruta final
+    subprocess.Popen(
+        [destino],
+        creationflags=subprocess.DETACHED_PROCESS | CREATE_NO_WINDOW,
+        close_fds=True,
+    )
+    os._exit(0)
+
+
 def aplicar_actualizacion_monitor(monitor_exe_url: str, progress_callback=None) -> tuple[bool, str]:
     """
-    Descarga monitor.exe a %TEMP% y programa un .bat que, tras cerrar este proceso,
-    mueve el archivo nuevo sobre sys.executable y vuelve a abrir el monitor.
+    Descarga el nuevo exe a %TEMP%, escribe el marker con la ruta final,
+    y programa el bat que lanzará el nuevo exe desde %TEMP%.
     """
     if not es_ejecutable_compilado():
         return False, "Solo disponible en monitor.exe compilado (PyInstaller)."
 
     exe_actual = os.path.abspath(sys.executable)
-    tmp_nuevo = os.path.join(tempfile.gettempdir(), "PapaMonitor_update_new.exe")
+    tmp_nuevo  = os.path.join(tempfile.gettempdir(), NUEVO_EXE_NAME)
 
-    # Limpiar descarga anterior si existe
+    # Limpiar descarga anterior
     try:
         if os.path.isfile(tmp_nuevo):
             os.remove(tmp_nuevo)
     except OSError:
         pass
-    ok, err = _descargar(monitor_exe_url, tmp_nuevo)
+
+    ok, err = _descargar(monitor_exe_url, tmp_nuevo, progress_callback=progress_callback)
     if not ok:
         return False, f"Descarga fallida: {err}"
 
-    # Verificar que el archivo descargado tiene tamaño razonable (> 1MB)
+    # Verificar tamaño mínimo (>5MB para un exe real)
     try:
         size = os.path.getsize(tmp_nuevo)
-        if size < 1_000_000:
+        if size < 5_000_000:
             os.remove(tmp_nuevo)
-            return False, f"Archivo descargado demasiado pequeño ({size} bytes). URL incorrecta o error de servidor."
+            return False, f"Exe descargado demasiado pequeño ({size // 1024}KB). URL incorrecta o error de servidor."
     except OSError:
         pass
 
-    ok2, err2 = _escribir_helper_bat(tmp_nuevo, exe_actual)
+    # Escribir marker con la ruta donde debe instalarse
+    try:
+        _escribir_marker(exe_actual)
+    except OSError as e:
+        return False, f"No se pudo escribir el marker: {e}"
+
+    # Crear y lanzar el bat
+    ok2, err2 = _escribir_bat_self_install(tmp_nuevo)
     if not ok2:
         try:
             os.remove(tmp_nuevo)
         except OSError:
             pass
-        return False, f"No se pudo crear el script de reemplazo: {err2}"
+        return False, f"No se pudo crear el script de actualización: {err2}"
 
     return True, ""
 
 
 def simular_actualizacion_disponible() -> tuple[bool, str]:
-    """
-    Modo de prueba: solo verifica que el sistema de update está configurado
-    y que la URL del monitor.exe responde. NO descarga ni reemplaza nada.
-    Retorna (True, info_msg) si el endpoint responde con >1MB, (False, error) si no.
-    """
     return True, "Test mode: update flow verificado (sin descarga real)"

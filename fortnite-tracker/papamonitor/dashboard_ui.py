@@ -40,6 +40,9 @@ class Api:
     def check_updates(self):
         self.app.accion_buscar_version()
 
+    def force_test_update(self):
+        self.app.accion_forzar_test_update()
+
     def desinstalar_tarea(self):
         self.app.accion_desinstalar_tarea()
 
@@ -109,6 +112,15 @@ class PapaMonitorApp:
     # --- UI Callbacks ---
     def on_ui_ready(self):
         self.window.evaluate_js(f"setVersion('{read_bundled_version()}')")
+        
+        # Enviar fecha de última actualización
+        try:
+            mtime = os.path.getmtime(sys.executable)
+            dt = datetime.fromtimestamp(mtime).strftime("%d/%m/%Y %H:%M:%S")
+        except Exception:
+            dt = "Desconocido"
+            
+        self.window.evaluate_js(f"setLastUpdateDate('{dt}')")
         
         is_inst = "true" if scheduler.tarea_existe() else "false"
         self.window.evaluate_js(f"setInstallState({is_inst})")
@@ -193,51 +205,26 @@ class PapaMonitorApp:
                     self.window.evaluate_js(f"showUpdateBanner('v{remote}', true)")
             else:
                 self.log(f"Estás al día (v{current}).", "SYS", "green")
+                if self.window:
+                    try:
+                        self.window.evaluate_js("switchTab('terminal')")
+                    except Exception:
+                        pass
         except Exception as e:
             self.log(f"Error comprobando actualizaciones: {e}", "ERR", "red")
             
+    def accion_forzar_test_update(self) -> None:
+        if self.window:
+            self.window.evaluate_js("scrollLogsView()")
+        self.log("Iniciando TEST de Actualización Forzada...", "SYS", "blue")
+        if self.window:
+             self.window.evaluate_js("showUpdateBanner('v9.9.9_TEST', true)")
+
     def forzar_actualizacion(self):
         remote = updater.obtener_version_remota(self.version_url)
         if remote:
             self._do_auto_update(remote)
-        else:
-            self.log("No se pudo obtener versión remota para actualizar.", "ERR", "red")
             
-    def test_actualizacion(self):
-        """Test del sistema de update: verifica configuración sin descargar nada real."""
-        self.log("Iniciando test de sistema de actualización...", "SYS", "blue")
-        
-        def _run():
-            try:
-                current = read_bundled_version()
-                remote = updater.obtener_version_remota(self.version_url)
-                if not remote:
-                    self.log(f"Test FALLO: No se pudo contactar {self.version_url}", "ERR", "red")
-                    return
-                from papamonitor.versioning import remote_version_is_newer
-                self.log(f"Test OK — versión local: v{current} | remota: v{remote}", "SYS", "green")
-                if remote_version_is_newer(remote, current):
-                    self.log(f"Hay actualización disponible (v{remote}). Iniciando descarga y reemplazo...", "SYS", "blue")
-                    if self.window:
-                        self.window.evaluate_js(f"showUpdateBanner('v{remote}', true)")
-                    self._do_auto_update(remote)
-                else:
-                    self.log(f"Lanzando actualización forzada de prueba (misma versión v{current})...", "SYS", "blue")
-                    if self.window:
-                        self.window.evaluate_js(f"showUpdateBanner('v{current}-TEST', true)")
-                    # En modo prueba, siempre intentar la descarga real
-                    ok, err = updater.aplicar_actualizacion_monitor(self._exe_update_url)
-                    if ok:
-                        self.log("Test de update exitoso. Reiniciando monitor...", "SYS", "green")
-                        self.salir_total()
-                    else:
-                        self.log(f"Test de update falló: {err}", "ERR", "red")
-            except Exception as e:
-                self.log(f"Error en test de update: {e}", "ERR", "red")
-        
-        import threading
-        threading.Thread(target=_run, daemon=True).start()
-
     def _do_auto_update(self, rem_ver: str):
         if getattr(self, "icon", None):
             try:
@@ -247,12 +234,31 @@ class PapaMonitorApp:
                 )
             except Exception:
                 pass
-        ok, err = updater.aplicar_actualizacion_monitor(self._exe_update_url)
+                
+        def progress_tracker(pct):
+            if self.window:
+                try:
+                    self.window.evaluate_js(f"if(window.updateDownloadProgress) window.updateDownloadProgress({pct})")
+                except Exception:
+                    pass
+
+        ok, err = updater.aplicar_actualizacion_monitor(self._exe_update_url, progress_callback=progress_tracker)
         if ok:
             self.log("Instalador preparado, reiniciando...", "SYS", "green")
+            if self.window:
+                try:
+                    self.window.evaluate_js("if(window.updateDownloadProgress) window.updateDownloadProgress(100, true)")
+                except Exception:
+                    pass
+            time.sleep(1.5) # Esperamos a que la animacion termine
             self.salir_total()
         else:
             self.log(f"Auto-update falló: {err}", "ERR", "red")
+            if self.window:
+                try:
+                    self.window.evaluate_js(f"if(window.resetDownloadUI) window.resetDownloadUI('{err}')")
+                except Exception:
+                    pass
 
 
     def _monitor_loop(self) -> None:

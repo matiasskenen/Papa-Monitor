@@ -40,15 +40,21 @@ def obtener_version_remota(version_url: str, timeout: float = 12.0) -> str | Non
         return None
 
 
-def _descargar(url: str, destino: str, timeout: int = 180) -> tuple[bool, str]:
+def _descargar(url: str, destino: str, timeout: int = 180, progress_callback=None) -> tuple[bool, str]:
     part = destino + ".part"
     try:
         with requests.get(url, timeout=timeout, stream=True) as res:
             res.raise_for_status()
+            total_size = int(res.headers.get('content-length', 0))
+            downloaded = 0
             with open(part, "wb") as f:
-                for chunk in res.iter_content(256 * 1024):
+                for chunk in res.iter_content(64 * 1024):
                     if chunk:
                         f.write(chunk)
+                        downloaded += len(chunk)
+                        if progress_callback and total_size > 0:
+                            percent = int((downloaded / total_size) * 100)
+                            progress_callback(percent)
         os.replace(part, destino)
         return True, ""
     except Exception as e:
@@ -108,7 +114,7 @@ def _escribir_helper_bat(nuevo_exe: str, exe_final: str) -> tuple[bool, str]:
         return False, str(e)
 
 
-def aplicar_actualizacion_monitor(monitor_exe_url: str) -> tuple[bool, str]:
+def aplicar_actualizacion_monitor(monitor_exe_url: str, progress_callback=None) -> tuple[bool, str]:
     """
     Descarga monitor.exe a %TEMP% y programa un .bat que, tras cerrar este proceso,
     mueve el archivo nuevo sobre sys.executable y vuelve a abrir el monitor.
@@ -125,7 +131,6 @@ def aplicar_actualizacion_monitor(monitor_exe_url: str) -> tuple[bool, str]:
             os.remove(tmp_nuevo)
     except OSError:
         pass
-
     ok, err = _descargar(monitor_exe_url, tmp_nuevo)
     if not ok:
         return False, f"Descarga fallida: {err}"

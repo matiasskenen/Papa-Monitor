@@ -82,7 +82,11 @@ def _escribir_helper_bat(nuevo_exe: str, exe_final: str) -> tuple[bool, str]:
     lineas = [
         "@echo off",
         "setlocal",
+        # Esperar que el proceso cierre
         "timeout /t 6 /nobreak > nul",
+        # Limpiar carpetas _MEI viejas de PyInstaller (evita el error de DLL)
+        "for /d %%i in (\"%TEMP%\\_MEI*\") do rd /s /q \"%%i\" 2>nul",
+        # Reemplazar exe con reintentos
         "set RETRIES=0",
         ":retry",
         f'move /Y "{nuevo}" "{final}" > nul 2>&1',
@@ -95,6 +99,7 @@ def _escribir_helper_bat(nuevo_exe: str, exe_final: str) -> tuple[bool, str]:
         "  echo ERROR: No se pudo reemplazar el ejecutable despues de 10 intentos",
         "  exit /b 1",
         ")",
+        # Relanzar monitor
         f'start "" "{final}"',
         'del /F /Q "%~f0"',
     ]

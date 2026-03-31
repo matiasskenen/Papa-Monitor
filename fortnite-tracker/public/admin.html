@@ -13,7 +13,7 @@
         p.note { color: #888; font-size: 0.9rem; margin-bottom: 24px; }
         .row { margin-bottom: 16px; }
         label { display: block; font-size: 0.85rem; color: #aaa; margin-bottom: 6px; }
-        input[type="text"], input[type="password"], textarea {
+        input[type="text"], textarea {
             width: 100%; max-width: 560px; padding: 10px 12px; border-radius: 8px;
             border: 1px solid var(--border); background: #0f0f1a; color: var(--text);
         }
@@ -33,14 +33,8 @@
 <body>
     <div class="card">
         <h1>Configuración del servidor</h1>
-        <p class="note">
-            El token deb coincide con la variable <code>ADMIN_SECRET</code> en Vercel.
-            No guardes el token en el repositorio.
-        </p>
-        <div class="row">
-            <label for="token">Token de administrador</label>
-            <input type="password" id="token" autocomplete="off" placeholder="Pegá el ADMIN_SECRET">
-        </div>
+        <p class="note">Panel de administración de PapaMonitor. Acceso público.</p>
+
         <div class="row">
             <button type="button" id="btn-load">Cargar valores</button>
             <button type="button" class="secondary" id="btn-save">Guardar cambios</button>
@@ -79,11 +73,7 @@
         const API = '';
         const fb = document.getElementById('feedback');
 
-        function headers() {
-            const t = document.getElementById('token').value.trim();
-            if (!t) throw new Error('Ingresá el token de admin');
-            return { 'Content-Type': 'application/json', 'X-Admin-Token': t };
-        }
+        const headers = () => ({ 'Content-Type': 'application/json' });
 
         function parseProcessField(raw) {
             const s = (raw || '').trim();
@@ -191,6 +181,9 @@
                 tfb.classList.add('err');
             }
         });
+
+        // Cargar valores automáticamente al abrir la página
+        document.getElementById('btn-load').click();
     </script>
 </body>
 </html>

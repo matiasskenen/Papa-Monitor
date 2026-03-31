@@ -103,15 +103,10 @@ def resend_from_address() -> str:
 
 
 def admin_auth(f):
+    """Sin autenticación — acceso público."""
     @wraps(f)
     def wrapper(*args, **kwargs):
-        if not ADMIN_SECRET:
-            return jsonify({"error": "Admin deshabilitado (sin ADMIN_SECRET)"}), 404
-        token = request.headers.get("X-Admin-Token", "")
-        if token != ADMIN_SECRET:
-            return jsonify({"error": "No autorizado"}), 401
         return f(*args, **kwargs)
-
     return wrapper
 
 

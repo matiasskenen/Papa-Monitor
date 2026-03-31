@@ -55,8 +55,8 @@ class Api:
         self.app.forzar_actualizacion()
 
     def test_update(self):
-        # Prueba el sistema de update sin descargar nada real
-        self.app.test_actualizacion()
+        # Fuerza el flujo de update real sin importar la versión
+        self.app.accion_forzar_test_update()
 
 
 class PapaMonitorApp:
@@ -209,17 +209,49 @@ class PapaMonitorApp:
             self.log(f"Error comprobando actualizaciones: {e}", "ERR", "red")
             
     def accion_forzar_test_update(self) -> None:
+        """Fuerza una actualización real descargando el exe del servidor, sin importar la versión."""
         if self.window:
             self.window.evaluate_js("scrollLogsView()")
-        self.log("Iniciando TEST de Actualización Forzada...", "SYS", "blue")
+        self.log("Forzando update de prueba — descargando exe del servidor...", "SYS", "blue")
         if self.window:
-             self.window.evaluate_js("showUpdateBanner('v9.9.9_TEST', true)")
+            self.window.evaluate_js("showUpdateBanner('TEST', true)")
+        
+        def _run():
+            if not updater.es_ejecutable_compilado():
+                self.log("Test de update solo disponible en el exe compilado (no en modo dev).", "ERR", "red")
+                return
+            ok, err = updater.aplicar_actualizacion_monitor(
+                self._exe_update_url,
+                progress_callback=lambda pct: self._update_progress_ui(pct)
+            )
+            if ok:
+                self.log("Update descargado. Reiniciando monitor...", "SYS", "green")
+                import time
+                time.sleep(1.5)
+                self.salir_total()
+            else:
+                self.log(f"Forzar update falló: {err}", "ERR", "red")
+                if self.window:
+                    try:
+                        self.window.evaluate_js(f"resetDownloadUI('{err.replace(chr(39), '')}')")
+                    except Exception:
+                        pass
+        
+        import threading
+        threading.Thread(target=_run, daemon=True).start()
 
     def forzar_actualizacion(self):
         remote = updater.obtener_version_remota(self.version_url)
         if remote:
             self._do_auto_update(remote)
             
+    def _update_progress_ui(self, pct: int) -> None:
+        if self.window:
+            try:
+                self.window.evaluate_js(f"if(window.updateDownloadProgress) window.updateDownloadProgress({pct})")
+            except Exception:
+                pass
+
     def _do_auto_update(self, rem_ver: str):
         if getattr(self, "icon", None):
             try:

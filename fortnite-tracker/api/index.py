@@ -64,7 +64,12 @@ def _cfg_set(key: str, value: Any) -> None:
         val = "true" if val else "false"
     elif val is not None and not isinstance(val, str):
         val = str(val)
-    supabase.table("config").update({"value": val}).eq("key", key).execute()
+    # Usamos upsert para no fallar si la row no existe
+    existing = supabase.table("config").select("key").eq("key", key).limit(1).execute().data or []
+    if existing:
+        supabase.table("config").update({"value": val}).eq("key", key).execute()
+    else:
+        supabase.table("config").insert({"key": key, "value": val}).execute()
 
 
 def _cfg_upsert(key: str, value: Any) -> None:
@@ -218,18 +223,20 @@ def handle_status():
                             "start_time": now,
                         }
                     ).execute()
-                    if emails_enabled() and RESEND_API_KEY:
+                    # Siempre enviamos email de alerta si Resend está configurado
+                    if RESEND_API_KEY:
                         try:
                             resend.Emails.send(
                                 {
                                     "from": resend_from_address(),
                                     "to": ALERT_EMAIL_TO,
-                                    "subject": "⚠️ PAPÁ ONLINE",
-                                    "html": "<strong>El monitor detectó actividad en el proceso.</strong>",
+                                    "subject": "⚠️ PAPÁ ONLINE — Fortnite detectado",
+                                    "html": "<strong>El monitor detectó que Fortnite está corriendo.</strong><br><br>Este email fue enviado automáticamente por PapaMonitor.",
                                 }
                             )
                         except Exception as e:
                             print(f"Error Resend: {e}")
+
                 else:
                     supabase.table("sessions").update({"last_heartbeat": now}).eq("id", active_session[0]["id"]).execute()
             elif active_session:
@@ -348,6 +355,48 @@ def admin_settings():
             else:
                 _cfg_upsert(k, v)
         return jsonify({"status": "ok"}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/test-email", methods=["POST"])
+@admin_auth
+def test_email():
+    """Envía un email de prueba para verificar que Resend funciona."""
+    if not RESEND_API_KEY:
+        return jsonify({"error": "RESEND_API_KEY no configurada en el servidor"}), 503
+    try:
+        resend.Emails.send(
+            {
+                "from": resend_from_address(),
+                "to": ALERT_EMAIL_TO,
+                "subject": "✅ PapaMonitor — Test de email OK",
+                "html": "<strong>El sistema de emails está funcionando correctamente.</strong><br><br>Este es un email de prueba enviado desde el panel de administración.",
+            }
+        )
+        return jsonify({"status": "ok", "message": f"Email enviado a {ALERT_EMAIL_TO}"}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/admin/trigger-update-test", methods=["POST"])
+@admin_auth
+def trigger_update_test():
+    """
+    Incrementa temporalmente la versión remota en Supabase para simular
+    que hay una actualización disponible. El monitor la detectará en su
+    próximo ciclo de chequeo (máx 90 ticks × poll_interval).
+    Útil para testear el flujo completo de actualización sin compilar.
+    """
+    err = require_supabase()
+    if err:
+        return err
+    try:
+        body = request.json or {}
+        test_version = body.get("version", "99.99.99")
+        _cfg_upsert("update_test_version", test_version)
+        return jsonify({"status": "ok", "test_version": test_version,
+                        "message": "El monitor detectará la versión de prueba en su próximo ciclo."}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 

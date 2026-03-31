@@ -44,11 +44,16 @@ class Api:
         self.app.accion_desinstalar_tarea()
 
     def toggle_emails(self, enabled: bool):
-        self.app.accion_toggle_emails(enabled)
+        # Deprecado: emails siempre activos en el servidor
+        self.app.log("Emails siempre activos en el servidor (toggle deshabilitado).", "SYS", "neutral")
 
     def do_auto_update(self):
-        # Llamado por el botón "Instalar Ahora" en el HTML
+        # Llamado por el botón "Instalar Ahora" o "Forzar Actualización de Prueba"
         self.app.forzar_actualizacion()
+
+    def test_update(self):
+        # Prueba el sistema de update sin descargar nada real
+        self.app.test_actualizacion()
 
 
 class PapaMonitorApp:
@@ -110,7 +115,7 @@ class PapaMonitorApp:
         
         self.log("Consola iniciada.", "SYS", "neutral")
         self.sync_state_to_ui()
-        self._fetch_email_config_async()
+        # Emails siempre activos en servidor, no hay toggle que cargar
 
     def sync_state_to_ui(self):
         if not self.window: return
@@ -195,7 +200,44 @@ class PapaMonitorApp:
         remote = updater.obtener_version_remota(self.version_url)
         if remote:
             self._do_auto_update(remote)
+        else:
+            self.log("No se pudo obtener versión remota para actualizar.", "ERR", "red")
             
+    def test_actualizacion(self):
+        """Test del sistema de update: verifica configuración sin descargar nada real."""
+        self.log("Iniciando test de sistema de actualización...", "SYS", "blue")
+        
+        def _run():
+            try:
+                current = read_bundled_version()
+                remote = updater.obtener_version_remota(self.version_url)
+                if not remote:
+                    self.log(f"Test FALLO: No se pudo contactar {self.version_url}", "ERR", "red")
+                    return
+                from papamonitor.versioning import remote_version_is_newer
+                self.log(f"Test OK — versión local: v{current} | remota: v{remote}", "SYS", "green")
+                if remote_version_is_newer(remote, current):
+                    self.log(f"Hay actualización disponible (v{remote}). Iniciando descarga y reemplazo...", "SYS", "blue")
+                    if self.window:
+                        self.window.evaluate_js(f"showUpdateBanner('v{remote}', true)")
+                    self._do_auto_update(remote)
+                else:
+                    self.log(f"Lanzando actualización forzada de prueba (misma versión v{current})...", "SYS", "blue")
+                    if self.window:
+                        self.window.evaluate_js(f"showUpdateBanner('v{current}-TEST', true)")
+                    # En modo prueba, siempre intentar la descarga real
+                    ok, err = updater.aplicar_actualizacion_monitor(self._exe_update_url)
+                    if ok:
+                        self.log("Test de update exitoso. Reiniciando monitor...", "SYS", "green")
+                        self.salir_total()
+                    else:
+                        self.log(f"Test de update falló: {err}", "ERR", "red")
+            except Exception as e:
+                self.log(f"Error en test de update: {e}", "ERR", "red")
+        
+        import threading
+        threading.Thread(target=_run, daemon=True).start()
+
     def _do_auto_update(self, rem_ver: str):
         if getattr(self, "icon", None):
             try:
@@ -212,34 +254,7 @@ class PapaMonitorApp:
         else:
             self.log(f"Auto-update falló: {err}", "ERR", "red")
 
-    def _fetch_email_config_async(self):
-        def f():
-            try:
-                url = self.client_cfg["api_base"].rstrip("/") + "/api/config"
-                r = requests.get(url, timeout=10)
-                if r.status_code == 200:
-                    data = r.json()
-                    is_enabled = str(data.get("value")).lower() in ("true", "1", "yes")
-                    if self.window:
-                        self.window.evaluate_js(f"setEmailState({'true' if is_enabled else 'false'})")
-            except Exception as e:
-                self.log(f"Fallo red emails: {e}", "NET", "red")
-        threading.Thread(target=f, daemon=True).start()
 
-    def accion_toggle_emails(self, enabled: bool):
-        def f():
-            try:
-                url = self.client_cfg["api_base"].rstrip("/") + "/api/config"
-                r = requests.post(url, json={"enabled": enabled}, timeout=10)
-                if r.status_code == 200:
-                    self.log(f"Emails {'Activados' if enabled else 'Desactivados'} en el servidor.", "NET", "green")
-                else:
-                    self.log(f"Error al guardar config de emails: {r.status_code}", "ERR", "red")
-            except Exception as e:
-                self.log(f"Fallo de red al enviar config: {e}", "NET", "red")
-        threading.Thread(target=f, daemon=True).start()
-
-    # --- Monitor Background Loop ---
     def _monitor_loop(self) -> None:
         while self.running:
             try:
@@ -276,17 +291,23 @@ class PapaMonitorApp:
                         self.is_online = True
                         self.session_start_iso = datetime.utcnow().isoformat() + "Z"
                         self.sync_state_to_ui()
-                    r = requests.post(self.api_url, json={"is_online": True}, timeout=15)
-                    if r.status_code >= 400:
-                        self.log(f"POST ONLINE falló ({r.status_code})", "NET", "red")
+                    try:
+                        r = requests.post(self.api_url, json={"is_online": True}, timeout=15)
+                        if r.status_code >= 400:
+                            self.log(f"POST ONLINE falló ({r.status_code})", "NET", "red")
+                    except Exception as net_err:
+                        self.log(f"Red: no se pudo notificar ONLINE: {net_err}", "NET", "red")
                 elif self.is_online:
                     self.log("Juego cerrado. Sesión finalizada.", "SYS", "neutral")
                     self.is_online = False
                     self.session_start_iso = None
                     self.sync_state_to_ui()
-                    r = requests.post(self.api_url, json={"is_online": False}, timeout=15)
-                    if r.status_code >= 400:
-                        self.log(f"POST OFFLINE falló ({r.status_code})", "NET", "red")
+                    try:
+                        r = requests.post(self.api_url, json={"is_online": False}, timeout=15)
+                        if r.status_code >= 400:
+                            self.log(f"POST OFFLINE falló ({r.status_code})", "NET", "red")
+                    except Exception as net_err:
+                        self.log(f"Red: no se pudo notificar OFFLINE: {net_err}", "NET", "red")
 
             except Exception as e:
                 self.log(f"Error en monitor loop: {e}", "ERR", "red")

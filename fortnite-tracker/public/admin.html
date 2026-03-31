@@ -66,6 +66,13 @@
             <textarea id="process_substrings" placeholder='["FortniteClient-Win64-Shipping"]'></textarea>
         </div>
         <div id="feedback" class="msg"></div>
+        <hr style="border-color: var(--border); margin: 24px 0;">
+        <h2 style="font-size:1.1rem; margin: 0 0 8px;">Herramientas de prueba</h2>
+        <div class="row" style="display:flex; gap: 8px; flex-wrap: wrap;">
+            <button type="button" id="btn-test-email">Enviar email de prueba</button>
+            <button type="button" id="btn-test-update" class="secondary">Simular actualización disponible</button>
+        </div>
+        <div id="test-feedback" class="msg"></div>
         <p class="note" style="margin-top:24px;"><a href="/">Volver al inicio</a> · <a href="/dashboard">Dashboard</a></p>
     </div>
     <script>
@@ -142,6 +149,46 @@
             } catch (e) {
                 fb.textContent = String(e.message || e);
                 fb.classList.add('err');
+            }
+        });
+
+        // --- BOTONES DE PRUEBA ---
+        const tfb = document.getElementById('test-feedback');
+
+        document.getElementById('btn-test-email').addEventListener('click', async () => {
+            tfb.textContent = 'Enviando email de prueba...';
+            tfb.className = 'msg';
+            try {
+                const res = await fetch(API + '/api/test-email', {
+                    method: 'POST',
+                    headers: headers(),
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || res.statusText);
+                tfb.textContent = '✅ ' + (data.message || 'Email enviado correctamente.');
+                tfb.classList.add('ok');
+            } catch (e) {
+                tfb.textContent = '❌ Error: ' + String(e.message || e);
+                tfb.classList.add('err');
+            }
+        });
+
+        document.getElementById('btn-test-update').addEventListener('click', async () => {
+            tfb.textContent = 'Activando simulación de actualización...';
+            tfb.className = 'msg';
+            try {
+                const res = await fetch(API + '/api/admin/trigger-update-test', {
+                    method: 'POST',
+                    headers: headers(),
+                    body: JSON.stringify({ version: '99.99.99' }),
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || res.statusText);
+                tfb.textContent = '✅ ' + (data.message || 'Simulación activada.');
+                tfb.classList.add('ok');
+            } catch (e) {
+                tfb.textContent = '❌ Error: ' + String(e.message || e);
+                tfb.classList.add('err');
             }
         });
     </script>

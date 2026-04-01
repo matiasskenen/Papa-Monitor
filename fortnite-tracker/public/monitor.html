@@ -3,208 +3,64 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>PapaMonitor - Mobile Optimized</title>
+    <title>PapaMonitor – Panel</title>
+    <meta name="description" content="Panel de monitoreo en tiempo real de PapaMonitor">
     <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/monitor.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-    <style>
-        :root {
-            --fn-purple: #a722ff; --fn-blue: #00bbff; --fn-yellow: #fef102;
-            --fn-dark: #050114; --text: #ffffff;
-            --bg-card: rgba(18, 1, 41, 0.8);
-        }
-
-        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        
-        body {
-            font-family: 'Inter', sans-serif;
-            background: var(--fn-dark) url('https://www.transparenttextures.com/patterns/carbon-fibre.png');
-            color: var(--text);
-            line-height: 1.5;
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-        }
-
-        /* --- NAVEGACIÓN RESPONSIVE --- */
-        .sidebar {
-            width: 260px;
-            background: rgba(0,0,0,0.95);
-            border-right: 3px solid var(--fn-purple);
-            display: flex;
-            flex-direction: column;
-            padding: 25px;
-            position: fixed;
-            height: 100vh;
-            z-index: 100;
-        }
-
-        .sidebar h2 { font-family: 'Bebas Neue'; font-size: 2.2rem; color: var(--fn-yellow); margin-bottom: 30px; }
-
-        .nav-btn {
-            background: none; border: none; color: white; font-family: 'Bebas Neue'; font-size: 1.4rem;
-            text-align: left; padding: 12px; cursor: pointer; transition: 0.3s; margin-bottom: 10px;
-            clip-path: polygon(5% 0, 100% 0, 95% 100%, 0 100%);
-        }
-        .nav-btn.active { background: var(--fn-purple); padding-left: 20px; }
-
-        @media (max-width: 768px) {
-            .sidebar {
-                width: 100%;
-                height: 65px;
-                flex-direction: row;
-                bottom: 0;
-                top: auto;
-                border-right: none;
-                border-top: 2px solid var(--fn-purple);
-                padding: 5px;
-                justify-content: space-around;
-                align-items: center;
-            }
-            .sidebar h2 { display: none; }
-            .nav-btn {
-                margin-bottom: 0;
-                font-size: 1.1rem;
-                padding: 8px 15px;
-                clip-path: none;
-                border-radius: 8px;
-            }
-            .main { margin-bottom: 70px; }
-        }
-
-        /* --- CONTENIDO PRINCIPAL --- */
-        .main { flex: 1; margin-left: 260px; transition: margin 0.3s; }
-        @media (max-width: 768px) { .main { margin-left: 0; } }
-
-        .top-bar {
-            background: rgba(0,0,0,0.85);
-            padding: 15px 20px;
-            border-bottom: 1px solid rgba(254, 241, 2, 0.3);
-            backdrop-filter: blur(10px);
-            position: sticky; top: 0; z-index: 50;
-        }
-
-        .clocks-row {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-            gap: 15px;
-        }
-
-        .clock-block { display: flex; align-items: center; gap: 10px; }
-        .clock-block .flag { font-size: 1.2rem; }
-        .clock-val { font-size: 1.1rem; font-weight: 700; color: var(--fn-yellow); font-variant-numeric: tabular-nums; }
-        .where { font-size: 0.7rem; color: var(--fn-blue); text-transform: uppercase; font-weight: 700; }
-
-        .content-section {
-            padding: 20px;
-            max-width: 1000px;
-            margin: 0 auto;
-            display: none;
-        }
-        .content-section.active { display: block; animation: fadeIn 0.3s ease; }
-
-        /* --- CARDS --- */
-        .status-card {
-            background: linear-gradient(135deg, #120129, #050114);
-            padding: 30px 15px;
-            border-radius: 15px;
-            border: 2px solid var(--fn-blue);
-            text-align: center;
-            margin-bottom: 25px;
-            box-shadow: 0 10px 30px rgba(0, 187, 255, 0.15);
-        }
-
-        .status-badge { font-family: 'Bebas Neue'; font-size: 3.5rem; }
-        .online { color: #00ff88; text-shadow: 0 0 15px #00ff88; }
-        .offline { color: #ff3366; text-shadow: 0 0 15px #ff3366; }
-
-        /* --- LISTAS Y TABLAS --- */
-        .session-strip { list-style: none; display: flex; flex-direction: column; gap: 12px; }
-        .session-strip li {
-            background: rgba(255,255,255,0.05);
-            padding: 15px;
-            border-radius: 12px;
-            border: 1px solid rgba(255,255,255,0.1);
-        }
-
-        .table-wrapper { width: 100%; overflow-x: auto; margin-top: 15px; border-radius: 10px; }
-        .sessions-detail { width: 100%; border-collapse: collapse; min-width: 600px; }
-        .sessions-detail th { background: rgba(255,255,255,0.05); color: var(--fn-yellow); font-family: 'Bebas Neue'; padding: 12px; text-align: left; }
-        .sessions-detail td { padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 0.85rem; }
-
-        .chart-container { position: relative; height: 300px; width: 100%; margin: 20px 0; }
-
-        .config-row {
-            background: rgba(255,255,255,0.05);
-            padding: 20px;
-            border-radius: 12px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-top: 15px;
-        }
-
-        /* Switch Custom */
-        .switch { position: relative; width: 50px; height: 26px; flex-shrink: 0; }
-        .switch input { opacity: 0; width: 0; height: 0; }
-        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #444; transition: .4s; border-radius: 34px; }
-        .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
-        input:checked + .slider { background-color: var(--fn-purple); }
-        input:checked + .slider:before { transform: translateX(24px); }
-
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
-    </style>
 </head>
 <body>
 
+    <!-- SIDEBAR / NAV MÓVIL -->
     <nav class="sidebar">
         <h2>PAPA MONITOR</h2>
         <button class="nav-btn active" onclick="showSection('inicio', this)">ESTADO</button>
-        <button class="nav-btn" onclick="showSection('stats', this)">STATS</button>
-        <button class="nav-btn" onclick="showSection('config', this)">AJUSTES</button>
+        <button class="nav-btn" onclick="showSection('graficos', this)">GRÁFICOS</button>
+        <button class="nav-btn" onclick="showSection('sesiones', this)">SESIONES</button>
     </nav>
 
     <div class="main">
+
+        <!-- BARRA SUPERIOR CON RELOJES -->
         <header class="top-bar">
             <div class="clocks-row">
                 <div class="clock-block">
                     <span class="flag">🇪🇸</span>
-                    <div>
-                        <div class="where">ESPAÑA</div>
-                        <div id="clock-es" class="clock-val">00:00:00</div>
-                    </div>
+                    <div><div class="where">ESPAÑA</div><div id="clock-es" class="clock-val">--:--:--</div></div>
                 </div>
                 <div class="clock-block">
                     <span class="flag">🇦🇷</span>
-                    <div>
-                        <div class="where">ARGENTINA</div>
-                        <div id="clock-ar" class="clock-val">00:00:00</div>
-                    </div>
+                    <div><div class="where">ARGENTINA</div><div id="clock-ar" class="clock-val">--:--:--</div></div>
                 </div>
             </div>
         </header>
 
-        <!-- SECCIÓN: INICIO -->
+        <!-- SECCIÓN: ESTADO -->
         <section id="inicio" class="content-section active">
             <div class="status-card">
                 <div id="status-text" class="status-badge offline">OFFLINE</div>
-                <div id="play-time" style="font-weight: 600; color: #aaa;">ESPERANDO DATOS...</div>
-                <p id="offline-hint" style="font-size: 0.8rem; margin-top: 15px; opacity: 0.7; display: none;"></p>
+                <div id="play-time" style="font-weight:600;color:#aaa">CARGANDO...</div>
+                <p id="offline-hint" style="font-size:0.8rem;margin-top:15px;opacity:0.7;display:none"></p>
             </div>
-
-            <h3 style="font-family:'Bebas Neue'; margin-bottom: 15px; color: var(--fn-blue);">Últimas sesiones</h3>
+            <h3 style="font-family:'Bebas Neue';margin-bottom:15px;color:var(--fn-blue)">Últimas sesiones</h3>
             <ul id="last-sessions-list" class="session-strip"></ul>
         </section>
 
-        <!-- SECCIÓN: ESTADÍSTICAS -->
-        <section id="stats" class="content-section">
-            <h2 style="font-family:'Bebas Neue'; font-size: 2rem;">Actividad</h2>
+        <!-- SECCIÓN: GRÁFICOS -->
+        <section id="graficos" class="content-section">
+            <h2 style="font-family:'Bebas Neue';font-size:2rem;margin-bottom:5px">Gráficos</h2>
+            <p style="color:#888;font-size:0.85rem;margin-bottom:20px">Minutos jugados por día (últimos 30 días)</p>
             <div class="chart-container">
-                <canvas id="detailDaysChart"></canvas>
+                <canvas id="playtimeChart"></canvas>
             </div>
-            
-            <h3 style="font-family:'Bebas Neue'; margin-top: 30px; color: var(--fn-yellow);">Historial Detallado</h3>
+        </section>
+
+        <!-- SECCIÓN: SESIONES -->
+        <section id="sesiones" class="content-section">
+            <h2 style="font-family:'Bebas Neue';font-size:2rem;margin-bottom:5px">Sesiones</h2>
+            <p style="color:#888;font-size:0.85rem;margin-bottom:15px">Historial de las últimas 30 sesiones</p>
             <div class="table-wrapper">
-                <table class="sessions-detail" id="detail-sessions">
+                <table class="sessions-detail" id="sessions-table">
                     <thead>
                         <tr>
                             <th>Inicio (ES)</th>
@@ -213,220 +69,15 @@
                             <th>Estado</th>
                         </tr>
                     </thead>
-                    <tbody></tbody>
+                    <tbody>
+                        <tr><td colspan="4" style="text-align:center;color:#555">Cargando...</td></tr>
+                    </tbody>
                 </table>
             </div>
         </section>
 
-        <!-- SECCIÓN: CONFIGURACIÓN -->
-        <section id="config" class="content-section">
-            <h2 style="font-family:'Bebas Neue'; font-size: 2rem; margin-bottom: 20px;">Configuración</h2>
-            <div class="config-row">
-                <div style="font-weight: 500; padding-right: 15px;">Alertas de email al iniciar sesión</div>
-                <label class="switch">
-                    <input type="checkbox" id="email-toggle" onchange="updateConfig(this.checked)">
-                    <span class="slider"></span>
-                </label>
-            </div>
-        </section>
-    </div>
+    </div><!-- /.main -->
 
-    <script>
-        // Si API_BASE está vacío, intentaremos usar rutas relativas seguras o datos de prueba si falla
-        const API_BASE = ""; 
-        const OPT_ES = { timeZone: 'Europe/Madrid', hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' };
-        const OPT_AR = { timeZone: 'America/Argentina/Buenos_Aires', hour: '2-digit', minute: '2-digit' };
-        let detailChart = null;
-
-        // Mock data for preview mode if API fails
-        const MOCK_SESSIONS = [
-            { start_time: new Date(Date.now() - 3600000).toISOString(), end_time: null, is_active: true },
-            { start_time: new Date(Date.now() - 86400000).toISOString(), end_time: new Date(Date.now() - 80000000).toISOString(), is_active: false },
-            { start_time: new Date(Date.now() - 172800000).toISOString(), end_time: new Date(Date.now() - 160000000).toISOString(), is_active: false }
-        ];
-        
-        const MOCK_STATS = {
-            by_day: Array.from({length: 15}, (_, i) => ({
-                date: new Date(Date.now() - i * 86400000).toISOString().split('T')[0],
-                minutes: Math.floor(Math.random() * 200)
-            })).reverse()
-        };
-
-        function getSafeUrl(path) {
-            // Fix for "Failed to parse URL" in blob/iframe environments
-            if (!API_BASE && path.startsWith('/')) {
-                // If it's a blob URL, we can't fetch from root. We'll use a dummy domain or handle error
-                return window.location.origin.startsWith('http') ? path : null;
-            }
-            return API_BASE + path;
-        }
-
-        function fmt(iso, opts) {
-            if (!iso) return '—';
-            const d = new Date(iso);
-            return isNaN(d.getTime()) ? '—' : new Intl.DateTimeFormat('es-ES', opts).format(d);
-        }
-
-        function getDur(start, end, active) {
-            const a = new Date(start);
-            const b = active ? new Date() : (end ? new Date(end) : null);
-            if (!b || isNaN(a.getTime())) return '—';
-            let mins = Math.max(0, Math.floor((b - a) / 60000));
-            return Math.floor(mins / 60) + 'h ' + (mins % 60) + 'm';
-        }
-
-        function showSection(id, btn) {
-            document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
-            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-            document.getElementById(id).classList.add('active');
-            btn.classList.add('active');
-            if (id === 'stats') loadStats();
-            window.scrollTo(0,0);
-        }
-
-        async function loadStats() {
-            let j = MOCK_STATS;
-            const url = getSafeUrl('/api/stats/playtime?days=30&tz=Europe/Madrid');
-            
-            if (url) {
-                try {
-                    const res = await fetch(url);
-                    if (res.ok) j = await res.json();
-                } catch(e) { console.warn("API Unavailable, using mock stats"); }
-            }
-
-            if (j.by_day) {
-                const ctx = document.getElementById('detailDaysChart').getContext('2d');
-                if (detailChart) detailChart.destroy();
-                detailChart = new Chart(ctx, {
-                    type: 'line',
-                    data: {
-                        labels: j.by_day.map(x => x.date.split('-').slice(1).reverse().join('/')),
-                        datasets: [{
-                            label: 'Minutos',
-                            data: j.by_day.map(x => x.minutes),
-                            borderColor: '#00bbff',
-                            backgroundColor: 'rgba(0, 187, 255, 0.1)',
-                            fill: true,
-                            tension: 0.4
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: { legend: { display: false } },
-                        scales: {
-                            y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#888' } },
-                            x: { grid: { display: false }, ticks: { color: '#888', maxRotation: 0 } }
-                        }
-                    }
-                });
-            }
-
-            let sessions = MOCK_SESSIONS;
-            const statusUrl = getSafeUrl('/api/status?limit=20');
-            if (statusUrl) {
-                try {
-                    const res = await fetch(statusUrl);
-                    if (res.ok) sessions = await res.json();
-                } catch(e) { console.warn("API Unavailable, using mock sessions history"); }
-            }
-
-            const tbody = document.querySelector('#detail-sessions tbody');
-            tbody.innerHTML = sessions.map(s => `
-                <tr>
-                    <td>${fmt(s.start_time, OPT_ES)}</td>
-                    <td>${s.is_active ? '—' : fmt(s.end_time, OPT_ES)}</td>
-                    <td>${getDur(s.start_time, s.end_time, s.is_active)}</td>
-                    <td><span style="color:${s.is_active ? '#00ff88':'#888'}">${s.is_active ? 'Activa':'Cerrada'}</span></td>
-                </tr>
-            `).join('');
-        }
-
-        async function loadData() {
-            let sessions = MOCK_SESSIONS;
-            const url = getSafeUrl('/api/status');
-            
-            if (url) {
-                try {
-                    const res = await fetch(url);
-                    if (res.ok) {
-                        const data = await res.json();
-                        if (Array.isArray(data)) sessions = data;
-                    }
-                } catch(e) { 
-                    console.warn("API URL invalid or unreachable, using mock data for preview.");
-                }
-            }
-
-            const list = document.getElementById('last-sessions-list');
-            
-            if (!sessions || !sessions.length) {
-                list.innerHTML = '<li>Sin actividad reciente</li>';
-                return;
-            }
-
-            // Render lista
-            list.innerHTML = sessions.slice(0, 3).map((s, i) => `
-                <li>
-                    <div style="display:flex; justify-content:space-between; margin-bottom:8px">
-                        <b style="font-size:0.7rem; color:var(--fn-blue)">SESIÓN ${i+1}</b>
-                        <span style="font-size:0.6rem; padding:2px 6px; border-radius:4px; background:${s.is_active?'var(--fn-purple)':'#333'}">
-                            ${s.is_active ? 'EN CURSO' : 'FINALIZADA'}
-                        </span>
-                    </div>
-                    <div style="font-size:0.85rem">
-                        <div>🇪🇸 ${fmt(s.start_time, OPT_ES)}</div>
-                        <div style="color:var(--fn-yellow); margin-top:4px">Duración: ${getDur(s.start_time, s.end_time, s.is_active)}</div>
-                    </div>
-                </li>
-            `).join('');
-
-            // Estado principal
-            const top = sessions[0];
-            const st = document.getElementById('status-text');
-            const pt = document.getElementById('play-time');
-            const hint = document.getElementById('offline-hint');
-
-            if (top.is_active) {
-                st.innerText = "ONLINE"; st.className = "status-badge online";
-                pt.innerText = "Jugando ahora mismo";
-                hint.style.display = "none";
-            } else {
-                st.innerText = "OFFLINE"; st.className = "status-badge offline";
-                pt.innerText = "Desconectado";
-                if (top.end_time) {
-                    hint.style.display = "block";
-                    hint.innerText = "Última vez: " + fmt(top.end_time, OPT_ES);
-                }
-            }
-        }
-
-        function updateClocks() {
-            const clockOpt = { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false };
-            try {
-                document.getElementById('clock-es').textContent = new Intl.DateTimeFormat('es-ES', { ...clockOpt, timeZone: 'Europe/Madrid' }).format(new Date());
-                document.getElementById('clock-ar').textContent = new Intl.DateTimeFormat('es-ES', { ...clockOpt, timeZone: 'America/Argentina/Buenos_Aires' }).format(new Date());
-            } catch(e) {}
-        }
-
-        async function updateConfig(val) {
-            const url = getSafeUrl('/api/config');
-            if (!url) return;
-            try {
-                await fetch(url, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ enabled: !!val }),
-                });
-            } catch(e) { console.error(e); }
-        }
-
-        // Init
-        updateClocks();
-        loadData();
-        setInterval(updateClocks, 1000);
-        setInterval(loadData, 20000);
-    </script>
+    <script src="/monitor.js"></script>
 </body>
 </html>

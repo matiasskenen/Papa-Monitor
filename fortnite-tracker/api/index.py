@@ -374,26 +374,7 @@ def test_email():
         return jsonify({"error": str(e)}), 500
 
 
-@app.route("/api/admin/trigger-update-test", methods=["POST"])
-@admin_auth
-def trigger_update_test():
-    """
-    Incrementa temporalmente la versión remota en Supabase para simular
-    que hay una actualización disponible. El monitor la detectará en su
-    próximo ciclo de chequeo (máx 90 ticks × poll_interval).
-    Útil para testear el flujo completo de actualización sin compilar.
-    """
-    err = require_supabase()
-    if err:
-        return err
-    try:
-        body = request.json or {}
-        test_version = body.get("version", "99.99.99")
-        _cfg_upsert("update_test_version", test_version)
-        return jsonify({"status": "ok", "test_version": test_version,
-                        "message": "El monitor detectará la versión de prueba en su próximo ciclo."}), 200
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+
 
 
 if __name__ == "__main__":

@@ -1,0 +1,170 @@
+/* ===== index.css – estilos del sitio público principal ===== */
+:root {
+    --fn-purple: #a722ff;
+    --fn-blue: #00bbff;
+    --fn-yellow: #fef102;
+    --fn-dark: #050114;
+    --fn-rare: #0078f2;
+    --fn-epic: #b233ff;
+    --fn-legendary: #f17e21;
+    --text: #ffffff;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+    font-family: 'Inter', sans-serif;
+    background: var(--fn-dark);
+    background-image:
+        linear-gradient(rgba(5,1,20,0.82), rgba(5,1,20,0.82)),
+        url('https://images.unsplash.com/photo-1589241062272-c0a000072dfa?q=80&w=1920&auto=format&fit=crop');
+    background-attachment: fixed;
+    background-size: cover;
+    color: var(--text);
+    overflow-x: hidden;
+}
+
+.container { max-width: 1100px; margin: 0 auto; padding: 0 1.5rem; }
+
+/* ── TOP NAV ── */
+.top-nav {
+    position: sticky; top: 0; z-index: 200;
+    background: rgba(5,1,20,0.85);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border-bottom: 1px solid rgba(254,241,2,0.25);
+    padding: 0 1.5rem;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+.top-nav .brand {
+    font-family: 'Bebas Neue', cursive;
+    font-size: 1.6rem;
+    color: #fff;
+    text-decoration: none;
+    letter-spacing: 1px;
+    text-shadow: 2px 2px 0 var(--fn-purple);
+}
+.top-nav .nav-links {
+    display: flex;
+    gap: 4px;
+}
+.top-nav .nav-link {
+    font-family: 'Bebas Neue', cursive;
+    font-size: 1rem;
+    color: rgba(255,255,255,0.75);
+    text-decoration: none;
+    padding: 6px 14px;
+    border-radius: 6px;
+    transition: background 0.2s, color 0.2s;
+    letter-spacing: 0.05em;
+}
+.top-nav .nav-link:hover,
+.top-nav .nav-link.active {
+    background: rgba(254,241,2,0.1);
+    color: var(--fn-yellow);
+}
+
+/* ── LEGACY NAV (logo + descarga) ── */
+.legacy-nav {
+    padding: 10px 0;
+    background: rgba(0,0,0,0.9);
+    border-bottom: 4px solid var(--fn-yellow);
+}
+.nav-content { display: flex; justify-content: space-between; align-items: center; }
+.logo {
+    font-family: 'Bebas Neue', cursive; font-size: 2.8rem;
+    color: #fff; text-transform: uppercase; letter-spacing: 1px;
+    text-shadow: 3px 3px 0px var(--fn-purple);
+    text-decoration: none; font-style: italic;
+}
+.btn-download-sm {
+    background: var(--fn-yellow); color: #000;
+    padding: 5px 20px; font-family: 'Bebas Neue', cursive;
+    font-size: 1.5rem; text-transform: uppercase;
+    text-decoration: none;
+    clip-path: polygon(10% 0, 100% 0, 90% 100%, 0 100%);
+    transition: 0.2s; font-weight: bold;
+}
+.btn-download-sm:hover { opacity: 0.85; }
+
+/* ── HERO ── */
+.victory-banner {
+    background: linear-gradient(90deg, transparent 0%, rgba(254,241,2,0.9) 20%, rgba(254,241,2,0.9) 80%, transparent 100%);
+    padding: 15px 0; margin-bottom: 20px;
+    transform: skewX(-15deg); position: relative;
+    box-shadow: 0 0 30px rgba(254,241,2,0.4);
+}
+.victory-text {
+    font-family: 'Bebas Neue', cursive; color: #000;
+    font-size: 5rem; text-transform: uppercase;
+    text-align: center; transform: skewX(15deg);
+    letter-spacing: 2px; line-height: 0.9;
+}
+
+.hero { padding: 80px 0 60px; text-align: center; }
+.hero h1 {
+    font-family: 'Bebas Neue', cursive;
+    font-size: clamp(3.5rem, 8vw, 6.5rem);
+    line-height: 0.9; color: #fff; text-transform: uppercase;
+    font-style: italic; margin-top: -10px;
+    text-shadow: -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000, 6px 6px 0px var(--fn-purple);
+}
+.hero p {
+    font-family: 'Bebas Neue', cursive; font-size: 1.8rem;
+    margin-bottom: 40px; color: var(--fn-blue);
+    background: rgba(0,0,0,0.6); display: inline-block;
+    padding: 5px 20px; transform: rotate(-1deg);
+}
+.btn-main {
+    background: var(--fn-yellow); color: #000;
+    padding: 15px 60px; font-family: 'Bebas Neue', cursive;
+    font-size: 2.8rem; text-transform: uppercase;
+    text-decoration: none; display: inline-block;
+    clip-path: polygon(8% 0, 100% 0, 92% 100%, 0 100%);
+    box-shadow: 0 10px 0 #b1a801; transition: 0.1s; font-style: italic;
+}
+.btn-main:active { transform: translateY(6px); box-shadow: 0 4px 0 #b1a801; }
+
+/* ── FEATURES ── */
+.features {
+    padding: 40px 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+}
+.card {
+    background: rgba(0,0,0,0.7);
+    border-top: 6px solid var(--border-color);
+    padding: 30px; position: relative;
+    clip-path: polygon(0 0, 100% 0, 100% 90%, 90% 100%, 0 100%);
+    transition: 0.3s;
+}
+.card:hover { transform: translateY(-4px); }
+.card.rare      { --border-color: var(--fn-rare); }
+.card.epic      { --border-color: var(--fn-epic); }
+.card.legendary { --border-color: var(--fn-legendary); }
+.card h3 { font-family: 'Bebas Neue', cursive; font-size: 2.2rem; color: #fff; }
+.card .category { font-family: 'Bebas Neue'; color: var(--border-color); text-transform: uppercase; margin-bottom: 15px; display: block; }
+
+/* ── HOW IT WORKS ── */
+.how {
+    background: linear-gradient(180deg, var(--fn-purple), #4a148c);
+    padding: 40px; margin: 40px 0; border-radius: 10px;
+}
+.how h2 { font-family: 'Bebas Neue'; text-align: center; font-size: 3.5rem; color: var(--fn-yellow); text-shadow: 3px 3px 0 #000; margin-bottom: 30px; }
+.steps { display: grid; grid-template-columns: repeat(3,1fr); gap: 15px; }
+.step-item { background: rgba(0,0,0,0.4); padding: 20px; text-align: center; }
+.step-num { font-family: 'Bebas Neue'; font-size: 3rem; color: #fff; }
+
+/* ── FOOTER ── */
+footer { text-align: center; padding: 40px 0; font-family: 'Bebas Neue'; font-size: 1.4rem; color: #555; }
+
+@media (max-width: 768px) {
+    .steps { grid-template-columns: 1fr; }
+    .victory-text { font-size: 3rem; }
+    .top-nav .nav-links { gap: 2px; }
+    .top-nav .nav-link { font-size: 0.85rem; padding: 5px 8px; }
+}

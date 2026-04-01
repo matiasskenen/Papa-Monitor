@@ -40,9 +40,6 @@ class Api:
     def check_updates(self):
         self.app.accion_buscar_version()
 
-    def force_test_update(self):
-        self.app.accion_forzar_test_update()
-
     def desinstalar_tarea(self):
         self.app.accion_desinstalar_tarea()
 
@@ -51,12 +48,8 @@ class Api:
         self.app.log("Emails siempre activos en el servidor (toggle deshabilitado).", "SYS", "neutral")
 
     def do_auto_update(self):
-        # Llamado por el botón "Instalar Ahora" o "Forzar Actualización de Prueba"
+        # Llamado por el botón "Instalar Ahora"
         self.app.forzar_actualizacion()
-
-    def test_update(self):
-        # Fuerza el flujo de update real sin importar la versión
-        self.app.accion_forzar_test_update()
 
 
 class PapaMonitorApp:
@@ -81,7 +74,7 @@ class PapaMonitorApp:
         except OSError:
             self.img_logo = Image.new("RGB", (64, 64), color=(0, 120, 215))
 
-        self.icon = iniciar_tray(self.img_logo, self.lanzar_panel, self.salir_total)
+        self.icon = iniciar_tray(self.img_logo, self.lanzar_panel, self.ocultar_panel, self.salir_total)
         self.api_instance = Api(self)
 
         threading.Thread(target=self._monitor_loop, daemon=True).start()
@@ -94,6 +87,8 @@ class PapaMonitorApp:
         except OSError:
             html_content = "<h1>Error: HTML no encontrado</h1>"
 
+        start_minimized = "--start-minimized" in sys.argv
+
         self.window = webview.create_window(
             title=f"{constants.APP_NAME} — Panel",
             html=html_content,
@@ -103,9 +98,13 @@ class PapaMonitorApp:
             frameless=True,
             easy_drag=True,
             background_color='#060608',
-            hidden=False     
+            hidden=start_minimized,
         )
-        
+
+        # Interceptar el cierre de ventana para minimizar en lugar de cerrar
+        self.window.events.closed += self._on_window_closed
+        self.window.events.closing += self._on_window_closing
+
         # Bloquea el thread principal
         webview.start(debug=False)
 
@@ -154,6 +153,15 @@ class PapaMonitorApp:
     def ocultar_panel(self) -> None:
         if self.window:
             self.window.hide()
+
+    def _on_window_closing(self) -> bool:
+        """Intercepta el evento de cierre: oculta la ventana en lugar de cerrarla."""
+        self.ocultar_panel()
+        return False  # False = cancelar el cierre real
+
+    def _on_window_closed(self) -> None:
+        """Por si acaso el cierre ocurre igual (ej: salir_total). No hace nada extra."""
+        pass
 
     def salir_total(self) -> None:
         self.running = False
@@ -208,37 +216,7 @@ class PapaMonitorApp:
         except Exception as e:
             self.log(f"Error comprobando actualizaciones: {e}", "ERR", "red")
             
-    def accion_forzar_test_update(self) -> None:
-        """Fuerza una actualización real descargando el exe del servidor, sin importar la versión."""
-        if self.window:
-            self.window.evaluate_js("scrollLogsView()")
-        self.log("Forzando update de prueba — descargando exe del servidor...", "SYS", "blue")
-        if self.window:
-            self.window.evaluate_js("showUpdateBanner('TEST', true)")
-        
-        def _run():
-            if not updater.es_ejecutable_compilado():
-                self.log("Test de update solo disponible en el exe compilado (no en modo dev).", "ERR", "red")
-                return
-            ok, err = updater.aplicar_actualizacion_monitor(
-                self._exe_update_url,
-                progress_callback=lambda pct: self._update_progress_ui(pct)
-            )
-            if ok:
-                self.log("Update descargado. Reiniciando monitor...", "SYS", "green")
-                import time
-                time.sleep(1.5)
-                self.salir_total()
-            else:
-                self.log(f"Forzar update falló: {err}", "ERR", "red")
-                if self.window:
-                    try:
-                        self.window.evaluate_js(f"resetDownloadUI('{err.replace(chr(39), '')}')")
-                    except Exception:
-                        pass
-        
-        import threading
-        threading.Thread(target=_run, daemon=True).start()
+
 
     def forzar_actualizacion(self):
         remote = updater.obtener_version_remota(self.version_url)

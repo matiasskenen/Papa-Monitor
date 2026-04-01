@@ -1,0 +1,111 @@
+/* ===== PAPA MONITOR – monitor.css ===== */
+:root {
+    --fn-purple: #a722ff;
+    --fn-blue: #00bbff;
+    --fn-yellow: #fef102;
+    --fn-dark: #050114;
+    --text: #ffffff;
+    --bg-card: rgba(18, 1, 41, 0.8);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+body {
+    font-family: 'Inter', sans-serif;
+    background: var(--fn-dark) url('https://www.transparenttextures.com/patterns/carbon-fibre.png');
+    color: var(--text);
+    line-height: 1.5;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* ── SIDEBAR ── */
+.sidebar {
+    width: 260px;
+    background: rgba(0,0,0,0.95);
+    border-right: 3px solid var(--fn-purple);
+    display: flex;
+    flex-direction: column;
+    padding: 25px;
+    position: fixed;
+    height: 100vh;
+    z-index: 100;
+}
+.sidebar h2 { font-family: 'Bebas Neue'; font-size: 2.2rem; color: var(--fn-yellow); margin-bottom: 30px; }
+
+.nav-btn {
+    background: none; border: none; color: white;
+    font-family: 'Bebas Neue'; font-size: 1.4rem;
+    text-align: left; padding: 12px; cursor: pointer;
+    transition: 0.3s; margin-bottom: 10px;
+    clip-path: polygon(5% 0, 100% 0, 95% 100%, 0 100%);
+}
+.nav-btn.active { background: var(--fn-purple); padding-left: 20px; }
+.nav-btn:hover:not(.active) { background: rgba(167, 34, 255, 0.2); padding-left: 20px; }
+
+/* ── MAIN ── */
+.main { flex: 1; margin-left: 260px; transition: margin 0.3s; }
+
+.top-bar {
+    background: rgba(0,0,0,0.85);
+    padding: 15px 20px;
+    border-bottom: 1px solid rgba(254,241,2,0.3);
+    backdrop-filter: blur(10px);
+    position: sticky; top: 0; z-index: 50;
+}
+.clocks-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 15px;
+}
+.clock-block { display: flex; align-items: center; gap: 10px; }
+.clock-block .flag { font-size: 1.2rem; }
+.clock-val { font-size: 1.1rem; font-weight: 700; color: var(--fn-yellow); font-variant-numeric: tabular-nums; }
+.where { font-size: 0.7rem; color: var(--fn-blue); text-transform: uppercase; font-weight: 700; }
+
+/* ── SECTIONS ── */
+.content-section { padding: 20px; max-width: 1000px; margin: 0 auto; display: none; }
+.content-section.active { display: block; animation: fadeIn 0.3s ease; }
+@keyframes fadeIn { from { opacity:0; transform:translateY(5px); } to { opacity:1; transform:translateY(0); } }
+
+/* ── STATUS CARD ── */
+.status-card {
+    background: linear-gradient(135deg, #120129, #050114);
+    padding: 30px 15px; border-radius: 15px;
+    border: 2px solid var(--fn-blue); text-align: center;
+    margin-bottom: 25px;
+    box-shadow: 0 10px 30px rgba(0,187,255,0.15);
+}
+.status-badge { font-family: 'Bebas Neue'; font-size: 3.5rem; }
+.online  { color: #00ff88; text-shadow: 0 0 15px #00ff88; }
+.offline { color: #ff3366; text-shadow: 0 0 15px #ff3366; }
+
+/* ── SESSION LIST ── */
+.session-strip { list-style: none; display: flex; flex-direction: column; gap: 12px; }
+.session-strip li {
+    background: rgba(255,255,255,0.05); padding: 15px;
+    border-radius: 12px; border: 1px solid rgba(255,255,255,0.1);
+}
+
+/* ── CHART ── */
+.chart-container { position: relative; height: 300px; width: 100%; margin: 20px 0; }
+
+/* ── TABLE ── */
+.table-wrapper { width: 100%; overflow-x: auto; margin-top: 15px; border-radius: 10px; }
+.sessions-detail { width: 100%; border-collapse: collapse; min-width: 600px; }
+.sessions-detail th { background: rgba(255,255,255,0.05); color: var(--fn-yellow); font-family: 'Bebas Neue'; padding: 12px; text-align: left; }
+.sessions-detail td { padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 0.85rem; }
+
+/* ── RESPONSIVE ── */
+@media (max-width: 768px) {
+    .sidebar {
+        width: 100%; height: 65px; flex-direction: row;
+        bottom: 0; top: auto; border-right: none;
+        border-top: 2px solid var(--fn-purple);
+        padding: 5px; justify-content: space-around; align-items: center;
+    }
+    .sidebar h2 { display: none; }
+    .nav-btn { margin-bottom:0; font-size:1.1rem; padding:8px 15px; clip-path:none; border-radius:8px; }
+    .main { margin-left:0; margin-bottom:70px; }
+}

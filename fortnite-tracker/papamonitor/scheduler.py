@@ -25,7 +25,7 @@ def crear_tarea_inicio() -> tuple[bool, str]:
     if not getattr(sys, "frozen", False):
         app_path = sys.executable  # python.exe durante desarrollo
     app_path = app_path.strip()
-    tr_arg = f'"{app_path}"' if " " in app_path else app_path
+    tr_arg = f'"{app_path}" --start-minimized' if " " in app_path else f"{app_path} --start-minimized"
     res = subprocess.run(
         ["schtasks", "/create", "/f", "/tn", constants.APP_NAME, "/tr", tr_arg, "/sc", "onlogon", "/rl", "highest"],
         capture_output=True,

@@ -21,7 +21,13 @@ def run() -> None:
 
     solicitar_admin()
     if not verificar_instancia_unica():
+        # Si ya hay una instancia corriendo y se llamó con --show, mostrar el panel
+        if "--show" in sys.argv:
+            # La instancia existente no escucha señales, simplemente salir
+            pass
         sys.exit(0)
+    # --start-minimized: se pasa cuando Windows inicia el programa en el arranque
+    # La detección de la bandera ocurre dentro de PapaMonitorApp.__init__
     PapaMonitorApp()
 
 

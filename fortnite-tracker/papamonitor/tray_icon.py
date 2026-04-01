@@ -14,11 +14,13 @@ from papamonitor import constants
 def iniciar_tray(
     image: Image.Image,
     on_open_dashboard: Callable[[], None],
+    on_minimize: Callable[[], None],
     on_quit: Callable[[], None],
 ) -> pystray.Icon:
     menu = pystray.Menu(
         pystray.MenuItem("Abrir panel", on_open_dashboard, default=True),
-        pystray.MenuItem("Cerrar monitor", on_quit),
+        pystray.MenuItem("Minimizar", on_minimize),
+        pystray.MenuItem("Salir", on_quit),
     )
     icon = pystray.Icon(constants.APP_NAME, image, f"{constants.APP_NAME} activo", menu)
     threading.Thread(target=icon.run, daemon=True).start()

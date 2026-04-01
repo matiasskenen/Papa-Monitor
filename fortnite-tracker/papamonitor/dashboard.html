@@ -392,14 +392,14 @@
 
           <!-- Notificaciones -->
           <div class="relative pointer-events-auto" style="-webkit-app-region: no-drag;">
-            <button onclick="document.getElementById('notif-dropdown').classList.toggle('hidden')"
+            <button onclick="document.getElementById('notif-dropdown').classList.toggle('hidden'); document.getElementById('notif-badge')?.classList.add('hidden')"
               class="relative p-2 hover:bg-white/10 rounded-full transition-colors text-neutral-400 hover:text-white">
               <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
                 stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
                 <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
               </svg>
-              <span class="absolute top-1 right-1 w-2 h-2 bg-blue-500 rounded-full border-2 border-[#0c0c10]"></span>
+              <span id="notif-badge" class="absolute top-1 right-1 w-2 h-2 bg-blue-500 rounded-full border-2 border-[#0c0c10]"></span>
             </button>
 
             <!-- Menú Flotante -->

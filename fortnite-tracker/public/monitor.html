@@ -1,14 +1,17 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>PapaMonitor – Panel</title>
     <meta name="description" content="Panel de monitoreo en tiempo real de PapaMonitor">
-    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;600;700&display=swap"
+        rel="stylesheet">
     <link rel="stylesheet" href="/monitor.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 </head>
+
 <body>
 
     <!-- SIDEBAR / NAV MÓVIL -->
@@ -26,11 +29,17 @@
             <div class="clocks-row">
                 <div class="clock-block">
                     <span class="flag">🇪🇸</span>
-                    <div><div class="where">ESPAÑA</div><div id="clock-es" class="clock-val">--:--:--</div></div>
+                    <div>
+                        <div class="where">ESPAÑA</div>
+                        <div id="clock-es" class="clock-val">--:--:--</div>
+                    </div>
                 </div>
                 <div class="clock-block">
                     <span class="flag">🇦🇷</span>
-                    <div><div class="where">ARGENTINA</div><div id="clock-ar" class="clock-val">--:--:--</div></div>
+                    <div>
+                        <div class="where">ARGENTINA</div>
+                        <div id="clock-ar" class="clock-val">--:--:--</div>
+                    </div>
                 </div>
             </div>
         </header>
@@ -70,7 +79,9 @@
                         </tr>
                     </thead>
                     <tbody>
-                        <tr><td colspan="4" style="text-align:center;color:#555">Cargando...</td></tr>
+                        <tr>
+                            <td colspan="4" style="text-align:center;color:#555">Cargando...</td>
+                        </tr>
                     </tbody>
                 </table>
             </div>
@@ -80,4 +91,5 @@
 
     <script src="/monitor.js"></script>
 </body>
+
 </html>

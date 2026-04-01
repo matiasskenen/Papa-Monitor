@@ -47,6 +47,10 @@ class Api:
         # Deprecado: emails siempre activos en el servidor
         self.app.log("Emails siempre activos en el servidor (toggle deshabilitado).", "SYS", "neutral")
 
+    def get_stats(self):
+        """Devuelve estadísticas locales para los gráficos."""
+        return self.app.read_local_stats()
+
     def do_auto_update(self):
         # Llamado por el botón "Instalar Ahora"
         self.app.forzar_actualizacion()
@@ -162,6 +166,44 @@ class PapaMonitorApp:
     def _on_window_closed(self) -> None:
         """Por si acaso el cierre ocurre igual (ej: salir_total). No hace nada extra."""
         pass
+
+    def read_local_stats(self):
+        import json
+        # Usar LOCALAPPDATA para persistencia si es posible, sino el dir del exe
+        base_dir = os.environ.get('LOCALAPPDATA', os.getcwd())
+        app_dir = os.path.join(base_dir, "PapaMonitor")
+        if not os.path.exists(app_dir): os.makedirs(app_dir, exist_ok=True)
+        path = os.path.join(app_dir, "sessions_v1.json")
+        
+        if not os.path.exists(path):
+            return {"total_minutes": 0, "history": {}}
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except:
+            return {"total_minutes": 0, "history": {}}
+
+    def save_local_session(self, minutes):
+        import json
+        from datetime import date
+        base_dir = os.environ.get('LOCALAPPDATA', os.getcwd())
+        app_dir = os.path.join(base_dir, "PapaMonitor")
+        if not os.path.exists(app_dir): os.makedirs(app_dir, exist_ok=True)
+        path = os.path.join(app_dir, "sessions_v1.json")
+        
+        data = self.read_local_stats()
+        data["total_minutes"] = data.get("total_minutes", 0) + minutes
+        
+        history = data.get("history", {})
+        today = date.today().isoformat()
+        history[today] = history.get(today, 0) + minutes
+        data["history"] = history
+        
+        try:
+            with open(path, "w", encoding="utf-8") as f:
+                json.dump(data, f)
+        except:
+            pass
 
     def salir_total(self) -> None:
         self.running = False
@@ -309,6 +351,20 @@ class PapaMonitorApp:
                     except Exception as net_err:
                         self.log(f"Red: no se pudo notificar ONLINE: {net_err}", "NET", "red")
                 elif self.is_online:
+                    # Guardar estadísticas locales
+                    try:
+                        if self.session_start_iso:
+                            from datetime import datetime
+                            # Python 3.11+ maneja Z, pero para versiones anteriores:
+                            parsed_start = self.session_start_iso.rstrip("Z")
+                            start_dt = datetime.fromisoformat(parsed_start)
+                            diff = datetime.utcnow() - start_dt
+                            mins = max(1, int(diff.total_seconds() / 60))
+                            self.app.save_local_session(mins)
+                            self.app.log(f"Estadísticas: +{mins}m guardados localmente.", "SYS", "blue")
+                    except Exception as se:
+                        self.app.log(f"Error stats: {se}", "ERR", "red")
+
                     self.log("Juego cerrado. Sesión finalizada.", "SYS", "neutral")
                     self.is_online = False
                     self.session_start_iso = None

@@ -605,22 +605,28 @@
           </div>
 
           <!-- Tab: Estadísticas -->
-          <div id="section-stats"
-            class="tab-content hidden h-full space-y-8 animate-in slide-in-from-bottom-4 duration-500">
-            <div class="glass-card rounded-3xl p-10 flex flex-col items-center justify-center min-h-[350px]">
-              <div
-                class="w-20 h-20 rounded-2xl bg-gradient-to-tr from-purple-600 to-indigo-900 flex items-center justify-center mb-6 shadow-[0_0_30px_rgba(168,85,247,0.3)]">
-                <svg class="text-white w-10 h-10" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
-                  stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M3 3v18h18" />
-                  <path d="M18 17V9" />
-                  <path d="M13 17V5" />
-                  <path d="M8 17v-3" />
-                </svg>
+          <div id="section-stats" class="tab-content hidden h-full space-y-6 animate-in slide-in-from-bottom-4 duration-500">
+            <!-- Header Resumen -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div class="glass-card p-6 rounded-2xl border-l-4 border-l-purple-500/50">
+                <p class="text-[10px] font-bold text-neutral-500 uppercase tracking-widest mb-1">Total Horas Jugadas</p>
+                <p id="total-hours" class="text-2xl font-black text-white italic">0h</p>
               </div>
-              <h2 class="text-2xl font-black italic tracking-tighter uppercase mb-4 text-white">Gráficos</h2>
-              <div class="border border-purple-500/30 bg-purple-500/10 px-6 py-2 rounded-full">
-                <p class="text-purple-400 text-[10px] font-black uppercase tracking-[0.2em]">Visualización de sesiones activada</p>
+              <div class="glass-card p-6 rounded-2xl border-l-4 border-l-indigo-500/50">
+                <p class="text-[10px] font-bold text-neutral-500 uppercase tracking-widest mb-1">Días Registrados</p>
+                <p id="total-days" class="text-2xl font-black text-white italic">0</p>
+              </div>
+            </div>
+
+            <!-- Gráfico Principal -->
+            <div class="glass-card rounded-3xl p-8 min-h-[400px] flex flex-col">
+              <h3 class="text-[10px] font-black uppercase tracking-[0.2em] mb-6 text-neutral-400">Minutos por día (Última semana)</h3>
+              <div id="no-stats-msg" class="flex-1 flex flex-col items-center justify-center space-y-4 opacity-50 hidden">
+                  <svg class="w-12 h-12 text-neutral-600" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
+                  <p class="text-sm font-bold uppercase tracking-widest">Sin información de juego todavía</p>
+              </div>
+              <div id="chart-container" class="flex-1 relative">
+                <canvas id="sessionsChart" style="max-height: 300px;"></canvas>
               </div>
             </div>
           </div>
@@ -648,13 +654,23 @@
     window.addEventListener('load', () => {
       // Remover el spinner y desvanecer la entrada de la app
       setTimeout(() => {
-        document.getElementById('initial-loader').style.display = 'none';
-        document.getElementById('app-content').style.opacity = '1';
-      }, 300); // Pequeño delay extra para asegurar render tailwind
+        const loader = document.getElementById('initial-loader');
+        if (loader) loader.style.display = 'none';
+        const content = document.getElementById('app-content');
+        if (content) content.style.opacity = '1';
+      }, 500); 
+    });
+
+    // Notificar al motor que el HTML está listo (vía evento específico de pywebview)
+    window.addEventListener('pywebviewready', () => {
+      if (window.pywebview && window.pywebview.api) {
+        window.pywebview.api.loaded();
+      }
     });
 
     let updateTimer = null;
     let sessionStart = null;
+    let myChart = null;
 
     function switchTab(tabId) {
       document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
@@ -666,6 +682,84 @@
       });
       document.getElementById('btn-' + tabId).classList.add('active');
       document.getElementById('btn-' + tabId).classList.remove('text-neutral-500');
+
+      if (tabId === 'stats') {
+        loadStats();
+      }
+    }
+
+    async function loadStats() {
+      if (!window.pywebview || !window.pywebview.api) return;
+      
+      const stats = await window.pywebview.api.get_stats();
+      const totalHrs = Math.floor(stats.total_minutes / 60);
+      const totalMins = stats.total_minutes % 60;
+      
+      document.getElementById('total-hours').innerText = `${totalHrs}h ${totalMins}m`;
+      
+      const history = stats.history || {};
+      const labels = Object.keys(history).sort();
+      const values = labels.map(l => history[l]);
+      
+      document.getElementById('total-days').innerText = labels.length;
+
+      const chartBox = document.getElementById('chart-container');
+      const msgBox = document.getElementById('no-stats-msg');
+
+      if (labels.length === 0) {
+        chartBox.classList.add('hidden');
+        msgBox.classList.remove('hidden');
+        return;
+      } else {
+        chartBox.classList.remove('hidden');
+        msgBox.classList.add('hidden');
+      }
+
+      if (myChart) myChart.destroy();
+      
+      const ctx = document.getElementById('sessionsChart').getContext('2d');
+      myChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: labels.map(l => l.split('-').slice(1).join('/')), // MM/DD
+          datasets: [{
+            label: 'Minutos jugados',
+            data: values,
+            backgroundColor: 'rgba(99, 102, 241, 0.5)',
+            borderColor: '#6366f1',
+            borderWidth: 2,
+            borderRadius: 8,
+            borderSkipped: false,
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+                backgroundColor: '#1f2937',
+                titleColor: '#9ca3af',
+                bodyColor: '#fff',
+                bodyFont: { weight: 'bold' },
+                padding: 12,
+                cornerRadius: 12,
+                displayColors: false
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              grid: { color: 'rgba(255,255,255,0.05)', drawBorder: false },
+              ticks: { color: '#666', font: { size: 10, weight: 'bold' } }
+            },
+            x: {
+              grid: { display: false },
+              ticks: { color: '#666', font: { size: 10, weight: 'bold' } }
+            }
+          }
+        }
+      });
     }
 
     function setVersion(v) {

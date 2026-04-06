@@ -1,111 +1,165 @@
 /* ===== PAPA MONITOR – monitor.css ===== */
 :root {
-    --fn-purple: #a722ff;
-    --fn-blue: #00bbff;
-    --fn-yellow: #fef102;
-    --fn-dark: #050114;
-    --text: #ffffff;
-    --bg-card: rgba(18, 1, 41, 0.8);
+    --indigo-400: #818cf8;
+    --indigo-500: #6366f1;
+    --indigo-600: #4f46e5;
+    --rose-300: #fda4af;
+    --rose-400: #fb7185;
+    --rose-500: #f43f5e;
+    --emerald-400: #34d399;
+    --emerald-500: #10b981;
+    --emerald-600: #059669;
+    --slate-300: #cbd5e1;
+    --slate-400: #94a3b8;
+    --slate-500: #64748b;
+    --slate-600: #475569;
+    --slate-900: #0f172a;
 }
-
-* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
 body {
     font-family: 'Inter', sans-serif;
-    background: var(--fn-dark) url('https://www.transparenttextures.com/patterns/carbon-fibre.png');
-    color: var(--text);
-    line-height: 1.5;
+    background: radial-gradient(circle at top left, #1e1b4b, #0f172a, #020617);
     min-height: 100vh;
-    display: flex;
-    flex-direction: column;
+    color: #f8fafc;
+    overflow-x: hidden;
 }
 
-/* ── SIDEBAR ── */
-.sidebar {
-    width: 260px;
-    background: rgba(0,0,0,0.95);
-    border-right: 3px solid var(--fn-purple);
-    display: flex;
-    flex-direction: column;
-    padding: 25px;
-    position: fixed;
-    height: 100vh;
-    z-index: 100;
-}
-.sidebar h2 { font-family: 'Bebas Neue'; font-size: 2.2rem; color: var(--fn-yellow); margin-bottom: 30px; }
-
-.nav-btn {
-    background: none; border: none; color: white;
-    font-family: 'Bebas Neue'; font-size: 1.4rem;
-    text-align: left; padding: 12px; cursor: pointer;
-    transition: 0.3s; margin-bottom: 10px;
-    clip-path: polygon(5% 0, 100% 0, 95% 100%, 0 100%);
-}
-.nav-btn.active { background: var(--fn-purple); padding-left: 20px; }
-.nav-btn:hover:not(.active) { background: rgba(167, 34, 255, 0.2); padding-left: 20px; }
-
-/* ── MAIN ── */
-.main { flex: 1; margin-left: 260px; transition: margin 0.3s; }
-
-.top-bar {
-    background: rgba(0,0,0,0.85);
-    padding: 15px 20px;
-    border-bottom: 1px solid rgba(254,241,2,0.3);
-    backdrop-filter: blur(10px);
-    position: sticky; top: 0; z-index: 50;
-}
-.clocks-row {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-    gap: 15px;
-}
-.clock-block { display: flex; align-items: center; gap: 10px; }
-.clock-block .flag { font-size: 1.2rem; }
-.clock-val { font-size: 1.1rem; font-weight: 700; color: var(--fn-yellow); font-variant-numeric: tabular-nums; }
-.where { font-size: 0.7rem; color: var(--fn-blue); text-transform: uppercase; font-weight: 700; }
-
-/* ── SECTIONS ── */
-.content-section { padding: 20px; max-width: 1000px; margin: 0 auto; display: none; }
-.content-section.active { display: block; animation: fadeIn 0.3s ease; }
-@keyframes fadeIn { from { opacity:0; transform:translateY(5px); } to { opacity:1; transform:translateY(0); } }
-
-/* ── STATUS CARD ── */
-.status-card {
-    background: linear-gradient(135deg, #120129, #050114);
-    padding: 30px 15px; border-radius: 15px;
-    border: 2px solid var(--fn-blue); text-align: center;
-    margin-bottom: 25px;
-    box-shadow: 0 10px 30px rgba(0,187,255,0.15);
-}
-.status-badge { font-family: 'Bebas Neue'; font-size: 3.5rem; }
-.online  { color: #00ff88; text-shadow: 0 0 15px #00ff88; }
-.offline { color: #ff3366; text-shadow: 0 0 15px #ff3366; }
-
-/* ── SESSION LIST ── */
-.session-strip { list-style: none; display: flex; flex-direction: column; gap: 12px; }
-.session-strip li {
-    background: rgba(255,255,255,0.05); padding: 15px;
-    border-radius: 12px; border: 1px solid rgba(255,255,255,0.1);
+.glass {
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 1.5rem;
 }
 
-/* ── CHART ── */
-.chart-container { position: relative; height: 300px; width: 100%; margin: 20px 0; }
+.status-card-bg {
+    background: linear-gradient(135deg, rgba(244, 63, 94, 0.1) 0%, rgba(30, 27, 75, 0.4) 100%);
+    border: 1px solid rgba(244, 63, 94, 0.2);
+    transition: all 0.5s ease;
+}
 
-/* ── TABLE ── */
-.table-wrapper { width: 100%; overflow-x: auto; margin-top: 15px; border-radius: 10px; }
-.sessions-detail { width: 100%; border-collapse: collapse; min-width: 600px; }
-.sessions-detail th { background: rgba(255,255,255,0.05); color: var(--fn-yellow); font-family: 'Bebas Neue'; padding: 12px; text-align: left; }
-.sessions-detail td { padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 0.85rem; }
+.status-card-bg.online {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(30, 27, 75, 0.4) 100%);
+    border: 1px solid rgba(16, 185, 129, 0.2);
+}
 
-/* ── RESPONSIVE ── */
+.sidebar-item-active {
+    background: linear-gradient(90deg, rgba(99, 102, 241, 0.2) 0%, transparent 100%);
+    border-left: 4px solid #6366f1;
+}
+
+.pulse-offline {
+    box-shadow: 0 0 0 0 rgba(244, 63, 94, 0.7);
+    animation: pulse-red 2s infinite;
+}
+
+.pulse-online {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+    animation: pulse-green 2s infinite;
+}
+
+@keyframes pulse-red {
+    0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(244, 63, 94, 0.7); }
+    70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(244, 63, 94, 0); }
+    100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(244, 63, 94, 0); }
+}
+
+@keyframes pulse-green {
+    0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+    70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
+    100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+    display: none;
+}
+
+.content-section {
+    display: none;
+}
+
+.content-section.active {
+    display: block;
+    animation: fadeIn 0.5s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.table-wrapper {
+    overflow-x: auto;
+    border-radius: 1rem;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+th {
+    text-align: left;
+    padding: 1rem;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #64748b;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+td {
+    padding: 1rem;
+    font-size: 0.875rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.02);
+}
+
+.chart-container {
+    position: relative;
+    height: 400px;
+    width: 100%;
+}
+
 @media (max-width: 768px) {
-    .sidebar {
-        width: 100%; height: 65px; flex-direction: row;
-        bottom: 0; top: auto; border-right: none;
-        border-top: 2px solid var(--fn-purple);
-        padding: 5px; justify-content: space-around; align-items: center;
+    body { overflow-y: auto; }
+    .flex-row { flex-direction: column; }
+    aside {
+        width: 100%;
+        height: auto;
+        position: fixed;
+        bottom: 0;
+        z-index: 100;
+        border-right: none;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        background: rgba(15, 23, 42, 0.95);
+        backdrop-filter: blur(20px);
     }
-    .sidebar h2 { display: none; }
-    .nav-btn { margin-bottom:0; font-size:1.1rem; padding:8px 15px; clip-path:none; border-radius:8px; }
-    .main { margin-left:0; margin-bottom:70px; }
+    aside .p-8 { display: none; }
+    aside .mt-4 {
+        margin-top: 0;
+        display: flex;
+        justify-content: space-around;
+        padding: 0.5rem;
+    }
+    aside nav {
+        flex-direction: row;
+        gap: 0;
+        padding: 0;
+    }
+    aside nav button {
+        flex-direction: column;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 0.5rem;
+        border-left: none !important;
+        border-radius: 0;
+    }
+    aside nav button span { font-size: 0.6rem; }
+    aside .glass { display: none; }
+    main { padding-bottom: 80px; }
+    header { padding: 1.5rem; }
+    header .clocks-row { display: none; }
+    .status-card-bg { padding: 2rem 1rem; }
+    #status-text { font-size: 3rem; }
 }

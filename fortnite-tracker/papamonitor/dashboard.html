@@ -599,8 +599,22 @@
                   class="w-full h-full bg-[#0c0c10] rounded-[1.2rem] flex items-center justify-center text-4xl font-black italic text-white">
                   A</div>
               </div>
-              <h2 class="text-3xl font-black italic tracking-tighter uppercase mb-1">User_Alpha</h2>
-              <p class="text-blue-500 text-[10px] font-black uppercase tracking-[0.3em]">Premium Account</p>
+              <h2 class="text-3xl font-black italic tracking-tighter uppercase mb-1">Cuenta de Monitor</h2>
+              <p class="text-blue-500 text-[10px] font-black uppercase tracking-[0.3em]">Acceso de Tracker Local</p>
+
+              <div class="mt-8 w-full max-w-sm text-left">
+                <h2 class="text-[10px] font-black uppercase tracking-[0.2em] mb-4 flex items-center gap-2 text-neutral-400">
+                  <span class="w-1 h-3 bg-blue-500 rounded-full"></span>  
+                  Enlace de Cuenta
+                </h2>
+                <div class="flex flex-col gap-3">
+                  <input type="text" id="jwt-token-input" placeholder="Pegá acá tu Token JWT..." class="w-full bg-black/40 border border-white/5 rounded-xl px-4 py-3 text-xs focus:outline-none focus:border-blue-500 transition-colors text-white font-mono placeholder:text-neutral-600">
+                  <button onclick="if(window.pywebview) { window.pywebview.api.save_token(document.getElementById('jwt-token-input').value); alert('Monitor Enlazado Exitosamente!'); document.getElementById('jwt-token-input').value=''; }" class="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white font-black rounded-xl transition-colors text-xs uppercase tracking-widest shadow-[0_0_15px_rgba(59,130,246,0.3)] hover:shadow-[0_0_25px_rgba(59,130,246,0.5)]">
+                    Enlazar Monitor Local
+                  </button>
+                  <p class="text-[9px] text-neutral-500 leading-relaxed mt-3 p-3 bg-white/5 rounded-lg border border-white/5">Para obtener tu Token, entrá al Dashboard Web en <span class="text-blue-400 font-bold">papa-monitor.vercel.app</span>, presioná F12, ve a Consola y ejecutá <span class="text-white font-mono bg-black px-1 rounded inline-block mt-1">copy((await supabase.auth.getSession()).data.session.access_token)</span> y pegalo aquí arriba.</p>
+                </div>
+              </div>
             </div>
           </div>
 

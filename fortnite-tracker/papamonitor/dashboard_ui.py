@@ -55,12 +55,16 @@ class Api:
         # Llamado por el botón "Instalar Ahora"
         self.app.forzar_actualizacion()
 
+    def save_token(self, token: str):
+        self.app.save_jwt_token(token)
+
 
 class PapaMonitorApp:
     def __init__(self) -> None:
         self.running = True
         self.is_online = False
         self.session_start_iso = None
+        self.jwt_token = self.load_jwt_token()
         
         # Valores por defecto para abrir la interfaz instantáneamente.
         # El loop de fondo traerá la configuración real de inmediato.
@@ -217,6 +221,32 @@ class PapaMonitorApp:
         # Forzamos cierre a nivel de sistema inmediatamente
         os._exit(0)
 
+    def load_jwt_token(self):
+        base_dir = os.environ.get('LOCALAPPDATA', os.getcwd())
+        app_dir = os.path.join(base_dir, "PapaMonitor")
+        path = os.path.join(app_dir, "token.jwt")
+        if os.path.exists(path):
+            try:
+                with open(path, "r") as f:
+                    return f.read().strip()
+            except:
+                pass
+        return ""
+
+    def save_jwt_token(self, token: str):
+        base_dir = os.environ.get('LOCALAPPDATA', os.getcwd())
+        app_dir = os.path.join(base_dir, "PapaMonitor")
+        if not os.path.exists(app_dir): os.makedirs(app_dir, exist_ok=True)
+        path = os.path.join(app_dir, "token.jwt")
+        try:
+            with open(path, "w") as f:
+                f.write(token.strip())
+            self.jwt_token = token.strip()
+            self.log("Token JWT guardado exitosamente.", "SYS", "green")
+            # Refresca la configuración si es necesario
+        except Exception as e:
+            self.log(f"Error guardando token: {e}", "ERR", "red")
+
     # --- Acciones (Botones) ---
     def accion_reparar_tarea(self) -> None:
         scheduler.eliminar_tarea()
@@ -345,9 +375,12 @@ class PapaMonitorApp:
                         self.session_start_iso = datetime.utcnow().isoformat() + "Z"
                         self.sync_state_to_ui()
                     try:
-                        r = requests.post(self.api_url, json={"is_online": True}, timeout=15)
+                        headers = {}
+                        if self.jwt_token:
+                            headers["Authorization"] = f"Bearer {self.jwt_token}"
+                        r = requests.post(self.api_url, json={"is_online": True}, headers=headers, timeout=15)
                         if r.status_code >= 400:
-                            self.log(f"POST ONLINE falló ({r.status_code})", "NET", "red")
+                            self.log(f"POST ONLINE falló ({r.status_code}): {r.text}", "NET", "red")
                     except Exception as net_err:
                         self.log(f"Red: no se pudo notificar ONLINE: {net_err}", "NET", "red")
                 elif self.is_online:
@@ -370,9 +403,12 @@ class PapaMonitorApp:
                     self.session_start_iso = None
                     self.sync_state_to_ui()
                     try:
-                        r = requests.post(self.api_url, json={"is_online": False}, timeout=15)
+                        headers = {}
+                        if self.jwt_token:
+                            headers["Authorization"] = f"Bearer {self.jwt_token}"
+                        r = requests.post(self.api_url, json={"is_online": False}, headers=headers, timeout=15)
                         if r.status_code >= 400:
-                            self.log(f"POST OFFLINE falló ({r.status_code})", "NET", "red")
+                            self.log(f"POST OFFLINE falló ({r.status_code}): {r.text}", "NET", "red")
                     except Exception as net_err:
                         self.log(f"Red: no se pudo notificar OFFLINE: {net_err}", "NET", "red")
 

@@ -16,7 +16,8 @@ app = Flask(__name__)
 
 # --- Solo variables de entorno (sin secretos en el código) ---
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "").strip()
-SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "").strip()
+SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "").strip() # Idealmente Service Role Key para el backend
+SUPABASE_ANON_KEY = os.environ.get("SUPABASE_ANON_KEY", "").strip()
 RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "").strip()
 ADMIN_SECRET = os.environ.get("ADMIN_SECRET", "").strip()
 
@@ -174,6 +175,8 @@ def public_config():
                 "api_base": base or None,
                 "process_substrings": proc_list,
                 "poll_interval_seconds": poll_i,
+                "supabase_url": SUPABASE_URL,
+                "supabase_anon_key": SUPABASE_ANON_KEY
             }
         ), 200
     except Exception as e:
@@ -185,6 +188,21 @@ def handle_status():
     err = require_supabase()
     if err:
         return err
+
+    # Validación de token JWT (para POST y GET)
+    auth_header = request.headers.get("Authorization", "")
+    if not auth_header.startswith("Bearer "):
+        return jsonify({"error": "No auth token provided"}), 401
+    jwt_token = auth_header.split(" ")[1]
+
+    try:
+        user_res = supabase.auth.get_user(jwt_token)
+        if not user_res or not user_res.user:
+            return jsonify({"error": "Invalid auth token"}), 401
+        user_id = user_res.user.id
+    except Exception as e:
+        return jsonify({"error": f"Auth error: {str(e)}"}), 401
+
     if request.method == "GET":
         try:
             try:
@@ -196,7 +214,11 @@ def handle_status():
             except (TypeError, ValueError):
                 limit = 10
             limit = max(1, min(limit, 50))
-            res = supabase.table("sessions").select("*").order("start_time", desc=True).limit(limit).execute()
+            # OJO: La db tiene RLS, pero el backend aqui usa la Service Role (probablemente).
+            # Por seguridad en `/api/status` GET deberíamos filtrar por él mismo y sus amigos, 
+            # pero lo ideal es que el JS llame a supabase.from("sessions") directamente con su token.
+            # Mantenemos este endpoint con filtro simple por user_id por compatibilidad si es llamado localmente
+            res = supabase.table("sessions").select("*").eq("user_id", user_id).order("start_time", desc=True).limit(limit).execute()
             return jsonify(res.data), 200
         except Exception as e:
             return jsonify({"error": str(e)}), 500
@@ -205,7 +227,9 @@ def handle_status():
         try:
             data = request.json or {}
             is_online = bool(data.get("is_online", False))
-            active_res = supabase.table("sessions").select("*").eq("is_active", True).execute()
+            
+            # Buscar sesión activa para este usuario en particular
+            active_res = supabase.table("sessions").select("*").eq("user_id", user_id).eq("is_active", True).execute()
             active_session = active_res.data or []
             now = utc_now_iso()
 
@@ -213,24 +237,34 @@ def handle_status():
                 if not active_session:
                     supabase.table("sessions").insert(
                         {
+                            "user_id": user_id,
                             "is_active": True,
                             "last_heartbeat": now,
                             "start_time": now,
                         }
                     ).execute()
-                    # Siempre enviamos email de alerta si Resend está configurado
+                    
                     if RESEND_API_KEY:
-                        try:
-                            resend.Emails.send(
-                                {
-                                    "from": resend_from_address(),
-                                    "to": ALERT_EMAIL_TO,
-                                    "subject": "⚠️ PAPÁ ONLINE — Fortnite detectado",
-                                    "html": "<strong>El monitor detectó que Fortnite está corriendo.</strong><br><br>Este email fue enviado automáticamente por PapaMonitor.",
-                                }
-                            )
-                        except Exception as e:
-                            print(f"Error Resend: {e}")
+                        # Buscar a todos los perfiles que tienen a este usuario fijado
+                        subs_res = supabase.table("users_profiles").select("email").eq("pinned_friend_id", user_id).execute()
+                        subscribers = [r["email"] for r in (subs_res.data or []) if r.get("email")]
+                        
+                        # Buscar nombre display del usuario
+                        prof_res = supabase.table("users_profiles").select("display_name").eq("id", user_id).execute()
+                        dname = prof_res.data[0]["display_name"] if prof_res.data else "Un amigo"
+
+                        for emp in subscribers:
+                            try:
+                                resend.Emails.send(
+                                    {
+                                        "from": resend_from_address(),
+                                        "to": emp,
+                                        "subject": f"⚠️ {dname} se ha conectado a Fortnite",
+                                        "html": f"<strong>{dname} acaba de abrir el juego y está ONLINE.</strong><br><br>Este email fue enviado automáticamente por PapaMonitor, dado que lo tienes como amigo fijado.",
+                                    }
+                                )
+                            except Exception as e:
+                                print(f"Error Resend to {emp}: {e}")
 
                 else:
                     supabase.table("sessions").update({"last_heartbeat": now}).eq("id", active_session[0]["id"]).execute()

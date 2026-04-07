@@ -178,14 +178,24 @@ async function loadMyProfile() {
         // Si el usuario existe en auth pero no en public.users_profiles
         try {
             const token = (await sbClient.auth.getSession()).data.session.access_token;
-            await fetch('/api/heal-profile', {
+            const res = await fetch('/api/heal-profile', {
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${token}` }
             });
-            // Recargar para que cargue el perfil ya curado
-            window.location.reload();
+            if (res.ok) {
+                // Recargar para que cargue el perfil ya curado
+                window.location.reload();
+            } else {
+                console.error("Autocurador falló: ", await res.text());
+                document.getElementById('monitor-content').innerHTML = `
+                  <div class="p-8 bg-rose-900/30 rounded-2xl text-center border border-rose-500/30">
+                    <h2 class="font-bold text-rose-400 mb-2">Error de Cuenta Fantasma Detectada</h2>
+                    <p class="text-sm text-slate-300">Tu cuenta fue creada sin perfil asociado. Para destrabarla permanentemente, por favor elimina tu cuenta de la plataforma usando el menú principal, o bórrala en Supabase, y vuelve a registrarte.</p>
+                  </div>`;
+                document.getElementById('monitor-content').classList.remove('hidden');
+            }
         } catch (e) {
-            console.error("Error intentando autocurar el perfil:", e);
+            console.error("Error catch autocurando:", e);
         }
     }
 }

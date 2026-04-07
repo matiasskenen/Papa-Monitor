@@ -185,9 +185,19 @@ def public_config():
 
 @app.route("/api/heal-profile", methods=["POST"])
 def heal_profile():
-    _, user_id, email = _verify_supabase_token()
-    if not user_id:
-        return jsonify({"error": "No autorizado"}), 401
+    auth_header = request.headers.get("Authorization", "")
+    if not auth_header.startswith("Bearer "):
+        return jsonify({"error": "No auth token provided"}), 401
+    jwt_token = auth_header.split(" ")[1]
+
+    try:
+        user_res = supabase.auth.get_user(jwt_token)
+        if not user_res or not user_res.user:
+            return jsonify({"error": "Invalid auth token"}), 401
+        user_id = user_res.user.id
+        email = user_res.user.email
+    except Exception as e:
+        return jsonify({"error": f"Auth error: {str(e)}"}), 401
     
     try:
         from random import randint

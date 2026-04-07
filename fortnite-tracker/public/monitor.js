@@ -37,7 +37,7 @@ function getDur(start, end, active) {
 
 // ── Navegación UI ──
 function showSection(id, btn) {
-    document.querySelectorAll('.content-section').forEach(s => s.classList.add('hidden'));
+    document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
     document.querySelectorAll('.nav-btn').forEach(b => {
         b.classList.remove('sidebar-item-active', 'text-white');
         b.classList.add('text-slate-400');
@@ -46,7 +46,7 @@ function showSection(id, btn) {
     });
 
     const target = document.getElementById(id);
-    if (target) target.classList.remove('hidden');
+    if (target) target.classList.add('active');
     
     btn.classList.add('sidebar-item-active', 'text-white');
     btn.classList.remove('text-slate-400');
@@ -95,23 +95,39 @@ async function checkAuth() {
     const { data: { session } } = await sbClient.auth.getSession();
     
     // Configurar listener para la UI de PyWebView donde la URL de respuesta tenga el token
-    sbClient.auth.onAuthStateChange((event, session) => {
-        if (session) {
+    sbClient.auth.onAuthStateChange(async (event, currentSession) => {
+        if (currentSession) {
+            // Verificar contra el servidor que la cuenta no haya sido eliminada
+            const { data: userResp, error: userError } = await sbClient.auth.getUser();
+            if (userError || !userResp.user) {
+                console.warn("La sesión local era inválida o la cuenta fue borrada. Desconectando...");
+                await sbClient.auth.signOut();
+                handleLogoutState();
+                return;
+            }
+
             if (window.pywebview) {
                 // Notificarle a Python el JWT para que lo guarde y use
                 window.pywebview.api.log("Enviando token a Python...", "SYS", "blue");
                 if (window.pywebview.api.save_token) {
-                    window.pywebview.api.save_token(session.access_token);
+                    window.pywebview.api.save_token(currentSession.access_token);
                 }
             }
-            handleLoginSuccess(session.user);
+            handleLoginSuccess(currentSession.user);
         } else {
             handleLogoutState();
         }
     });
 
     if (session) {
-        handleLoginSuccess(session.user);
+        // Verificar contra el servidor que la cuenta no haya sido eliminada
+        const { data: userResp, error: userError } = await sbClient.auth.getUser();
+        if (userError || !userResp.user) {
+            await sbClient.auth.signOut();
+            handleLogoutState();
+        } else {
+            handleLoginSuccess(session.user);
+        }
     } else {
         handleLogoutState();
     }

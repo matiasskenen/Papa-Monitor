@@ -16,16 +16,20 @@ app = Flask(__name__)
 
 # --- Solo variables de entorno (sin secretos en el código) ---
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "").strip()
-SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "").strip() # Idealmente Service Role Key para el backend
-SUPABASE_ANON_KEY = os.environ.get("SUPABASE_ANON_KEY", "").strip()
+SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "").strip() # Service Role Key
+SUPABASE_ANON_KEY = os.environ.get("SUPABASE_ANON_KEY", "").strip() # Anon Key
 RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "").strip()
 ADMIN_SECRET = os.environ.get("ADMIN_SECRET", "").strip()
 
-supabase: Client | None
+# Cliente Admin (para escribir estados y curar perfiles sin RLS restrictivo)
+sb_admin: Client | None = None
 if SUPABASE_URL and SUPABASE_KEY:
-    supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
-else:
-    supabase = None
+    sb_admin = create_client(SUPABASE_URL, SUPABASE_KEY)
+
+# Cliente Auth (para verificar tokens JWT de usuarios normales)
+sb_auth: Client | None = None
+if SUPABASE_URL and SUPABASE_ANON_KEY:
+    sb_auth = create_client(SUPABASE_URL, SUPABASE_ANON_KEY)
 
 if RESEND_API_KEY:
     resend.api_key = RESEND_API_KEY
@@ -39,16 +43,16 @@ def utc_now_iso() -> str:
 
 
 def require_supabase():
-    if supabase is None:
-        return jsonify({"error": "Servidor sin SUPABASE configurado"}), 503
+    if sb_admin is None or sb_auth is None:
+        return jsonify({"error": "Servidor con SUPABASE mal configurado"}), 503
     return None
 
 
 def _cfg_get(key: str, default: Any = None) -> Any:
-    if supabase is None:
+    if sb_admin is None:
         return default
     try:
-        r = supabase.table("config").select("value").eq("key", key).limit(1).execute()
+        r = sb_admin.table("config").select("value").eq("key", key).limit(1).execute()
         rows = r.data or []
         if not rows:
             return default
@@ -58,24 +62,22 @@ def _cfg_get(key: str, default: Any = None) -> Any:
 
 
 def _cfg_set(key: str, value: Any) -> None:
-    if supabase is None:
-        raise RuntimeError("supabase")
+    if sb_admin is None:
+        return
     val = value
     if isinstance(val, bool):
         val = "true" if val else "false"
     elif val is not None and not isinstance(val, str):
         val = str(val)
     # Usamos upsert para no fallar si la row no existe
-    existing = supabase.table("config").select("key").eq("key", key).limit(1).execute().data or []
+    existing = sb_admin.table("config").select("key").eq("key", key).limit(1).execute().data or []
     if existing:
-        supabase.table("config").update({"value": val}).eq("key", key).execute()
+        sb_admin.table("config").update({"value": val}).eq("key", key).execute()
     else:
-        supabase.table("config").insert({"key": key, "value": val}).execute()
+        sb_admin.table("config").insert({"key": key, "value": val}).execute()
 
 
 def _cfg_upsert(key: str, value: Any) -> None:
-    if supabase is None:
-        raise RuntimeError("supabase")
     val = value
     if isinstance(val, bool):
         val = "true" if val else "false"
@@ -201,13 +203,13 @@ def heal_profile():
     
     try:
         from random import randint
-        # Verificar si existe el perfil
-        profile = supabase.table("users_profiles").select("id").eq("id", user_id).execute()
+        # Verificar si existe el perfil usando el cliente con permisos totales
+        profile = sb_admin.table("users_profiles").select("id").eq("id", user_id).execute()
         if not profile.data:
             # Insertar uno nuevo manualmente
             # Generar un código único de 6 dígitos
             new_code = str(randint(100000, 999999))
-            supabase.table("users_profiles").insert({
+            sb_admin.table("users_profiles").insert({
                 "id": user_id,
                 "email": email or f"fantasma_{user_id}@app.com",
                 "display_name": email.split('@')[0] if email else "Usuario",
@@ -232,7 +234,8 @@ def handle_status():
     jwt_token = auth_header.split(" ")[1]
 
     try:
-        user_res = supabase.auth.get_user(jwt_token)
+        # Usamos sb_auth para validar que el token pertenece a un usuario real de este proyecto
+        user_res = sb_auth.auth.get_user(jwt_token)
         if not user_res or not user_res.user:
             return jsonify({"error": "Invalid auth token"}), 401
         user_id = user_res.user.id
@@ -242,7 +245,7 @@ def handle_status():
     if request.method == "GET":
         try:
             try:
-                supabase.rpc("cerrar_sesiones_muertas").execute()
+                sb_admin.rpc("cerrar_sesiones_muertas").execute()
             except Exception:
                 pass
             try:
@@ -250,11 +253,8 @@ def handle_status():
             except (TypeError, ValueError):
                 limit = 10
             limit = max(1, min(limit, 50))
-            # OJO: La db tiene RLS, pero el backend aqui usa la Service Role (probablemente).
-            # Por seguridad en `/api/status` GET deberíamos filtrar por él mismo y sus amigos, 
-            # pero lo ideal es que el JS llame a supabase.from("sessions") directamente con su token.
-            # Mantenemos este endpoint con filtro simple por user_id por compatibilidad si es llamado localmente
-            res = supabase.table("sessions").select("*").eq("user_id", user_id).order("start_time", desc=True).limit(limit).execute()
+            # Usar sb_admin para saltar RLS si es necesario o filtrar por el id validado
+            res = sb_admin.table("sessions").select("*").eq("user_id", user_id).order("start_time", desc=True).limit(limit).execute()
             return jsonify(res.data), 200
         except Exception as e:
             return jsonify({"error": str(e)}), 500
@@ -265,13 +265,13 @@ def handle_status():
             is_online = bool(data.get("is_online", False))
             
             # Buscar sesión activa para este usuario en particular
-            active_res = supabase.table("sessions").select("*").eq("user_id", user_id).eq("is_active", True).execute()
+            active_res = sb_admin.table("sessions").select("*").eq("user_id", user_id).eq("is_active", True).execute()
             active_session = active_res.data or []
             now = utc_now_iso()
 
             if is_online:
                 if not active_session:
-                    supabase.table("sessions").insert(
+                    sb_admin.table("sessions").insert(
                         {
                             "user_id": user_id,
                             "is_active": True,
@@ -282,11 +282,11 @@ def handle_status():
                     
                     if RESEND_API_KEY:
                         # Buscar a todos los perfiles que tienen a este usuario fijado
-                        subs_res = supabase.table("users_profiles").select("email").eq("pinned_friend_id", user_id).execute()
+                        subs_res = sb_admin.table("users_profiles").select("email").eq("pinned_friend_id", user_id).execute()
                         subscribers = [r["email"] for r in (subs_res.data or []) if r.get("email")]
                         
                         # Buscar nombre display del usuario
-                        prof_res = supabase.table("users_profiles").select("display_name").eq("id", user_id).execute()
+                        prof_res = sb_admin.table("users_profiles").select("display_name").eq("id", user_id).execute()
                         dname = prof_res.data[0]["display_name"] if prof_res.data else "Un amigo"
 
                         for emp in subscribers:

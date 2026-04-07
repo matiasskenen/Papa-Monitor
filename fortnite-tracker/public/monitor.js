@@ -122,7 +122,7 @@ document.getElementById('btn-login-google').addEventListener('click', async () =
     const { data, error } = await sbClient.auth.signInWithOAuth({
         provider: 'google',
         options: {
-            redirectTo: window.location.origin + '/dashboard.html' // URL temporal o correcta en vercel
+            redirectTo: window.location.origin + '/dashboard'
         }
     });
     if (error) {

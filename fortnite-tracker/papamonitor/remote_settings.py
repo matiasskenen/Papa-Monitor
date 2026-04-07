@@ -81,6 +81,8 @@ def merge_client_config() -> dict[str, Any]:
         "api_base": base,
         "process_substrings": [str(p).lower() for p in proc],
         "poll_interval_seconds": poll,
+        "supabase_url": remote.get("supabase_url"),
+        "supabase_anon_key": remote.get("supabase_anon_key")
     }
 
 

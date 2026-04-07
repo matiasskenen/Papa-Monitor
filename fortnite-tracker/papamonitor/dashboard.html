@@ -194,6 +194,37 @@
     <div class="loader-text-native">Iniciando Motor...</div>
   </div>
 
+  <!-- ==================== LOGIN OVERLAY ==================== -->
+  <div id="login-overlay" class="fixed inset-0 z-[60] bg-[#060608] flex flex-col items-center justify-center p-6 hidden">
+    <div class="glass-card p-10 max-w-sm w-full text-center space-y-8 rounded-[2.5rem] shadow-2xl border-blue-500/20">
+      <div class="space-y-3">
+        <h1 class="text-3xl font-black italic uppercase tracking-tighter text-white">
+          PAPA <span class="text-blue-500 font-black">MONITOR</span>
+        </h1>
+        <p class="text-neutral-500 text-[10px] font-bold uppercase tracking-widest leading-loose">Monitor de Actividad Local</p>
+      </div>
+
+      <div class="py-4">
+        <div class="w-20 h-20 bg-blue-600/10 rounded-3xl mx-auto flex items-center justify-center mb-6 border border-blue-500/20">
+            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-blue-500"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        </div>
+      </div>
+
+      <button onclick="if(window.pywebview) window.pywebview.api.login_google()"
+        class="w-full flex items-center justify-center gap-3 px-6 py-4 bg-white hover:bg-neutral-100 text-black font-black text-xs uppercase tracking-widest rounded-2xl transition-all shadow-xl active:scale-[0.98]">
+        <svg viewBox="0 0 24 24" class="w-4 h-4" width="24" height="24">
+          <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.58c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+          <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+          <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+          <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+        </svg>
+        Continuar con Google
+      </button>
+
+      <p class="text-[9px] text-neutral-600 font-bold uppercase">No requiere configurar códigos ni tokens a mano.</p>
+    </div>
+  </div>
+
   <!-- ==================== MAIN APP CONTENT ==================== -->
   <div id="app-content" class="w-full h-full flex" style="opacity: 0; transition: opacity 0.5s ease;">
 
@@ -591,18 +622,15 @@
               <h2 class="text-3xl font-black italic tracking-tighter uppercase mb-1">Amigos</h2>
               <p class="text-blue-500 text-[10px] font-black uppercase tracking-[0.3em]">Acceso de Tracker Local</p>
 
-              <div class="mt-8 w-full max-w-sm text-left">
-                <h2 class="text-[10px] font-black uppercase tracking-[0.2em] mb-4 flex items-center gap-2 text-neutral-400">
-                  <span class="w-1 h-3 bg-blue-500 rounded-full"></span>  
-                  Enlace de Cuenta
-                </h2>
-                <div class="flex flex-col gap-3">
-                  <input type="text" id="jwt-token-input" placeholder="Pegá acá tu Token de Vinculación..." class="w-full bg-black/40 border border-white/5 rounded-xl px-4 py-3 text-xs focus:outline-none focus:border-blue-500 transition-colors text-white font-mono placeholder:text-neutral-600">
-                  <button onclick="if(window.pywebview) { window.pywebview.api.save_token(document.getElementById('jwt-token-input').value); alert('Monitor Enlazado Exitosamente!'); document.getElementById('jwt-token-input').value=''; }" class="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white font-black rounded-xl transition-colors text-xs uppercase tracking-widest shadow-[0_0_15px_rgba(59,130,246,0.3)] hover:shadow-[0_0_25px_rgba(59,130,246,0.5)]">
-                    Vincular a Mi Cuenta
-                  </button>
-                  <p class="text-[9px] text-neutral-500 leading-relaxed mt-3 p-3 bg-white/5 rounded-lg border border-white/5">Para obtener tu Token, inicia sesión en la plataforma Web (<span class="text-blue-400 font-bold">papa-monitor.vercel.app</span>), ve a la solapa <strong class="text-white">Amigos</strong> y haz clic en "Copiar Token de Vinculación Seguro". Luego pegalo aquí arriba.</p>
+              <div class="mt-8 w-full max-w-sm text-center">
+                <div class="p-6 bg-blue-500/5 rounded-2xl border border-blue-500/20">
+                  <p class="text-[10px] text-blue-400 font-bold uppercase tracking-widest leading-relaxed">¡Tu cuenta está vinculada nativamente!</p>
+                  <p class="text-[9px] text-neutral-500 mt-2">El monitor detectará automáticamente quién eres y a quién reportar información.</p>
                 </div>
+                
+                <button onclick="if(window.pywebview) window.pywebview.api.logout()" class="mt-6 text-neutral-600 hover:text-red-400 text-[10px] font-black uppercase tracking-widest transition-colors">
+                    Cerrar Sesión Activa
+                </button>
               </div>
             </div>
           </div>
@@ -847,10 +875,18 @@
       }
     }
 
-    function setSystemState(isOnline, startTimeIso) {
+    function setSystemState(isOnline, startTimeIso, isLoggedIn) {
       const text = document.getElementById('status-text');
       const timer = document.getElementById('status-timer');
       const cardEdge = document.getElementById('status-card-border');
+      const loginOverlay = document.getElementById('login-overlay');
+
+      // Manejar visibilidad de Login
+      if (isLoggedIn === false) {
+        loginOverlay.classList.remove('hidden');
+      } else if (isLoggedIn === true) {
+        loginOverlay.classList.add('hidden');
+      }
 
       if (isOnline) {
         text.classList.remove('text-neutral-500', 'text-red-500');

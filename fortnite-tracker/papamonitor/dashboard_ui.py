@@ -6,7 +6,9 @@ import os
 import sys
 import threading
 import time
+import json
 from datetime import datetime
+from urllib.parse import urlparse, parse_qs
 
 import requests
 import webview
@@ -47,6 +49,12 @@ class Api:
         # Deprecado: emails siempre activos en el servidor
         self.app.log("Emails siempre activos en el servidor (toggle deshabilitado).", "SYS", "neutral")
 
+    def login_google(self):
+        self.app.accion_login_google()
+
+    def logout(self):
+        self.app.accion_logout()
+
     def get_stats(self):
         """Devuelve estadísticas locales para los gráficos."""
         return self.app.read_local_stats()
@@ -64,7 +72,10 @@ class PapaMonitorApp:
         self.running = True
         self.is_online = False
         self.session_start_iso = None
-        self.jwt_token = self.load_jwt_token()
+        
+        # Cargar sesión persistente si existe
+        self.session_path = os.path.join(os.path.dirname(sys.executable) if getattr(sys, "frozen", False) else os.getcwd(), "session.json")
+        self.jwt_token = self._load_session()
         
         # Valores por defecto para abrir la interfaz instantáneamente.
         # El loop de fondo traerá la configuración real de inmediato.
@@ -88,33 +99,67 @@ class PapaMonitorApp:
         threading.Thread(target=self._monitor_loop, daemon=True).start()
         
         # Iniciar interface
-        try:
-            html_path = resource_path("papamonitor/dashboard.html")
-            with open(html_path, encoding="utf-8") as f:
-                html_content = f.read()
-        except OSError:
-            html_content = "<h1>Error: HTML no encontrado</h1>"
-
-        start_minimized = "--start-minimized" in sys.argv
-
         self.window = webview.create_window(
-            title=f"{constants.APP_NAME} — Panel",
-            html=html_content,
-            js_api=self.api_instance,
-            width=900,
-            height=650,
-            frameless=True,
-            easy_drag=True,
-            background_color='#060608',
-            hidden=start_minimized,
+            constants.APP_NAME,
+            resource_path("papamonitor/dashboard.html"),
+            width=940,
+            height=700,
+            js_api=Api(self),
+            min_size=(900, 640),
+            background_color="#020617",
+            frame=True,
         )
+        self.window.events.shown += self.on_window_shown
+        self.window.events.url_changed += self.on_url_changed
+        
+        # Esconder según start-minimized
+        if "--start-minimized" in sys.argv:
+            self.window.hide()
 
         # Interceptar el cierre de ventana para minimizar en lugar de cerrar
-        self.window.events.closed += self._on_window_closed
         self.window.events.closing += self._on_window_closing
 
         # Bloquea el thread principal
         webview.start(debug=False)
+
+    def _save_session(self, token: str):
+        try:
+            with open(self.session_path, "w") as f:
+                json.dump({"jwt": token}, f)
+        except Exception as e:
+            self.log(f"Error guardando sesión: {e}", "SYS", "red")
+
+    def _load_session(self) -> str | None:
+        if os.path.exists(self.session_path):
+            try:
+                with open(self.session_path, "r") as f:
+                    data = json.load(f)
+                    return data.get("jwt")
+            except Exception:
+                pass
+        return None
+
+    def on_window_shown(self):
+        self.log("Consola iniciada.", "SYS", "neutral")
+        if self.jwt_token:
+            self.sync_state_to_ui()
+
+    def on_url_changed(self, url):
+        # Capturar redirect de Supabase con el token en el fragmento (#)
+        if "access_token=" in url:
+            try:
+                # El fragmento viene después de #
+                fragment = url.split("#")[1] if "#" in url else ""
+                params = parse_qs(fragment)
+                token = params.get("access_token", [None])[0]
+                if token:
+                    self.jwt_token = token
+                    self._save_session(token)
+                    self.log("¡Sesión de Google vinculada exitosamente!", "SYS", "green")
+                    # Volver al dashboard local
+                    self.window.load_url(resource_path("papamonitor/dashboard.html"))
+            except Exception as e:
+                self.log(f"Error vinculando Google: {e}", "ERR", "red")
 
     # --- UI Callbacks ---
     def on_ui_ready(self):
@@ -138,7 +183,8 @@ class PapaMonitorApp:
 
     def sync_state_to_ui(self):
         if not self.window: return
-        js_cmd = f"setSystemState({'true' if self.is_online else 'false'}, '{self.session_start_iso or ''}')"
+        is_logged = "true" if self.jwt_token else "false"
+        js_cmd = f"setSystemState({'true' if self.is_online else 'false'}, '{self.session_start_iso or ''}', {is_logged})"
         try:
             self.window.evaluate_js(js_cmd)
         except Exception:
@@ -392,10 +438,10 @@ class PapaMonitorApp:
                             start_dt = datetime.fromisoformat(parsed_start)
                             diff = datetime.utcnow() - start_dt
                             mins = max(1, int(diff.total_seconds() / 60))
-                            self.app.save_local_session(mins)
-                            self.app.log(f"Estadísticas: +{mins}m guardados localmente.", "SYS", "blue")
+                            self.save_local_session(mins)
+                            self.log(f"Estadísticas: +{mins}m guardados localmente.", "SYS", "blue")
                     except Exception as se:
-                        self.app.log(f"Error stats: {se}", "ERR", "red")
+                        self.log(f"Error stats: {se}", "ERR", "red")
 
                     self.log("Juego cerrado. Sesión finalizada.", "SYS", "neutral")
                     self.is_online = False
@@ -415,4 +461,25 @@ class PapaMonitorApp:
                 self.log(f"Error en monitor loop: {e}", "ERR", "red")
 
             time.sleep(max(10, self.poll_interval))
+
+    def accion_login_google(self):
+        if not self.client_cfg or not self.client_cfg.get("supabase_url"):
+            self.log("Cargando configuración remota...", "SYS", "neutral")
+            self.client_cfg = merge_client_config()
+            
+        sb_url = self.client_cfg.get("supabase_url")
+        if sb_url:
+            redirect = self.client_cfg.get("api_base", "https://papa-monitor.vercel.app")
+            auth_url = f"{sb_url}/auth/v1/authorize?provider=google&redirect_to={redirect}"
+            self.log("Abriendo Login de Google...", "SYS", "blue")
+            self.window.load_url(auth_url)
+        else:
+            self.log("Error: No se pudo conectar con Supabase.", "ERR", "red")
+
+    def accion_logout(self):
+        self.jwt_token = None
+        if os.path.exists(self.session_path):
+            os.remove(self.session_path)
+        self.log("Sesión cerrada.", "SYS", "neutral")
+        self.window.load_url(resource_path("papamonitor/dashboard.html"))
 

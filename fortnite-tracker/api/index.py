@@ -183,6 +183,31 @@ def public_config():
         return jsonify({"error": str(e)}), 500
 
 
+@app.route("/api/heal-profile", methods=["POST"])
+def heal_profile():
+    _, user_id, email = _verify_supabase_token()
+    if not user_id:
+        return jsonify({"error": "No autorizado"}), 401
+    
+    try:
+        from random import randint
+        # Verificar si existe el perfil usando admin role
+        profile = sb_admin.table("users_profiles").select("id").eq("id", user_id).execute()
+        if not profile.data:
+            # Insertar uno nuevo manualmente
+            new_code = str(randint(100000, 999999))
+            sb_admin.table("users_profiles").insert({
+                "id": user_id,
+                "email": email or f"fantasma_{user_id}@app.com",
+                "display_name": email.split('@')[0] if email else "Usuario",
+                "friend_code": new_code
+            }).execute()
+        return jsonify({"success": True})
+    except Exception as e:
+        logger.error(f"Error curando perfil fantasma: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
 @app.route("/api/status", methods=["GET", "POST"])
 def handle_status():
     err = require_supabase()

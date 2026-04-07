@@ -157,7 +157,8 @@ async function handleLoginSuccess(user) {
 
 // ── Perfiles y Amigos ──
 async function loadMyProfile() {
-    const { data, error } = await sbClient.from('users_profiles').select('*').eq('id', sessionUser.id).single();
+    const { data, error } = await sbClient.from('users_profiles').select('*').eq('id', sessionUser.id).maybeSingle();
+    
     if (data) {
         userProfile = data;
         pinnedFriendId = data.pinned_friend_id;
@@ -172,6 +173,20 @@ async function loadMyProfile() {
         }
         
         updateInicioView();
+    } else {
+        // PERFIL FANTASMA RECUPERADOR
+        // Si el usuario existe en auth pero no en public.users_profiles
+        try {
+            const token = (await sbClient.auth.getSession()).data.session.access_token;
+            await fetch('/api/heal-profile', {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            // Recargar para que cargue el perfil ya curado
+            window.location.reload();
+        } catch (e) {
+            console.error("Error intentando autocurar el perfil:", e);
+        }
     }
 }
 

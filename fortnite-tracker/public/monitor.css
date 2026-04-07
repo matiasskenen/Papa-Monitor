@@ -122,44 +122,53 @@ td {
 }
 
 @media (max-width: 768px) {
-    body { overflow-y: auto; }
-    .flex-row { flex-direction: column; }
-    aside {
-        width: 100%;
-        height: auto;
-        position: fixed;
-        bottom: 0;
-        z-index: 100;
-        border-right: none;
-        border-top: 1px solid rgba(255, 255, 255, 0.1);
-        background: rgba(15, 23, 42, 0.95);
-        backdrop-filter: blur(20px);
-    }
-    aside .p-8 { display: none; }
-    aside .mt-4 {
-        margin-top: 0;
-        display: flex;
-        justify-content: space-around;
-        padding: 0.5rem;
-    }
-    aside nav {
-        flex-direction: row;
-        gap: 0;
-        padding: 0;
-    }
-    aside nav button {
-        flex-direction: column;
-        align-items: center;
-        gap: 0.25rem;
-        padding: 0.5rem;
+    body { overflow-y: auto; overflow-x: hidden; }
+    
+    .sidebar-item-active {
+        background: transparent !important;
+        color: var(--indigo-400) !important;
         border-left: none !important;
-        border-radius: 0;
     }
-    aside nav button span { font-size: 0.6rem; }
-    aside .glass { display: none; }
-    main { padding-bottom: 80px; }
-    header { padding: 1.5rem; }
-    header .clocks-row { display: none; }
-    .status-card-bg { padding: 2rem 1rem; }
-    #status-text { font-size: 3rem; }
+    
+    .sidebar-item-active svg {
+        color: var(--indigo-400) !important;
+        filter: drop-shadow(0 0 8px rgba(99, 102, 241, 0.4));
+    }
+
+    main { 
+        padding-bottom: 90px;
+    }
+    
+    header { 
+        padding: 1.25rem 1.25rem; 
+        position: sticky;
+        top: 0;
+        background: rgba(2, 6, 23, 0.8);
+        backdrop-filter: blur(12px);
+        z-index: 40;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    
+    .status-card-bg { 
+        padding: 2.5rem 1.5rem; 
+        border-radius: 2rem;
+    }
+    
+    #status-text { 
+        font-size: 3.5rem; 
+        line-height: 1;
+    }
+
+    #play-time {
+        font-size: 15px;
+    }
+
+    .content-section {
+        padding-left: 1.25rem;
+        padding-right: 1.25rem;
+    }
+
+    .chart-container {
+        height: 300px;
+    }
 }

@@ -12,36 +12,36 @@
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 </head>
-<body class="flex overflow-hidden">
+<body class="flex flex-col sm:flex-row h-screen overflow-hidden bg-slate-950 text-white font-inter">
 
-    <!-- Sidebar -->
-    <aside class="w-64 h-screen border-r border-white/5 bg-black/20 flex flex-col shrink-0">
-        <div class="p-8">
+    <!-- Sidebar / Bottom Bar (Responsive) -->
+    <aside id="sidebar" class="order-2 sm:order-1 fixed bottom-0 left-0 right-0 w-full h-[75px] bg-slate-900/90 backdrop-blur-xl border-t border-white/5 z-50 flex sm:relative sm:top-0 sm:h-screen sm:w-64 sm:flex-col sm:border-t-0 sm:border-r sm:bg-black/20 shrink-0">
+        <div class="hidden sm:block p-8">
             <h1 class="text-2xl font-black tracking-tighter text-indigo-400">PAPA <span class="text-white">MONITOR</span></h1>
         </div>
         
-        <nav class="flex-1 px-4 space-y-2 mt-4">
-            <button onclick="showSection('inicio', this)" class="nav-btn sidebar-item-active w-full flex items-center gap-4 px-4 py-3 rounded-xl transition-all hover:bg-white/5 text-left">
+        <nav class="flex-1 flex flex-row sm:flex-col items-center sm:items-stretch justify-around sm:justify-start px-2 sm:px-4 sm:space-y-2 sm:mt-4 h-full">
+            <button onclick="showSection('inicio', this)" class="nav-btn sidebar-item-active flex flex-col sm:flex-row items-center gap-1 sm:gap-4 px-2 sm:px-4 py-2 sm:py-3 rounded-xl transition-all hover:bg-white/5 text-left grow sm:grow-0">
                 <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
                 </svg>
-                <span class="font-medium">Estado</span>
+                <span class="text-[10px] sm:text-sm font-bold uppercase sm:capitalize tracking-widest sm:tracking-normal">Estado</span>
             </button>
-            <button onclick="showSection('graficos', this)" class="nav-btn w-full flex items-center gap-4 px-4 py-3 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-all text-left">
+            <button onclick="showSection('graficos', this)" class="nav-btn flex flex-col sm:flex-row items-center gap-1 sm:gap-4 px-2 sm:px-4 py-2 sm:py-3 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-all text-left grow sm:grow-0">
                 <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                 </svg>
-                <span class="font-medium">Gráficos</span>
+                <span class="text-[10px] sm:text-sm font-bold uppercase sm:capitalize tracking-widest sm:tracking-normal">Gráficos</span>
             </button>
-            <button onclick="showSection('sesiones', this)" class="nav-btn w-full flex items-center gap-4 px-4 py-3 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-all text-left">
+            <button onclick="showSection('sesiones', this)" class="nav-btn flex flex-col sm:flex-row items-center gap-1 sm:gap-4 px-2 sm:px-4 py-2 sm:py-3 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-all text-left grow sm:grow-0">
                 <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                <span class="font-medium">Sesiones</span>
+                <span class="text-[10px] sm:text-sm font-bold uppercase sm:capitalize tracking-widest sm:tracking-normal">Sesiones</span>
             </button>
         </nav>
 
-        <div class="p-6">
+        <div class="hidden sm:block p-6">
             <div class="glass p-4 text-center">
                 <p class="text-xs text-slate-500 uppercase tracking-widest font-bold">Plan Premium</p>
                 <div class="mt-2 text-sm text-indigo-300">Activo hasta Mayo 2026</div>
@@ -50,21 +50,26 @@
     </aside>
 
     <!-- Main Content -->
-    <main class="flex-1 flex flex-col h-screen overflow-y-auto scrollbar-hide">
+    <main class="order-1 sm:order-2 flex-1 h-screen overflow-y-auto scrollbar-hide w-full pb-[80px] sm:pb-0">
         <!-- Top Bar -->
-        <header class="flex items-center justify-between px-10 py-6">
-            <div class="flex gap-8">
-                <div class="flex flex-col">
+        <header class="flex items-center justify-between px-6 sm:px-10 py-6">
+            <div class="flex items-center gap-4 sm:gap-8">
+                <!-- Mobile Logo -->
+                <div class="sm:hidden">
+                    <h1 class="text-xl font-black tracking-tighter text-indigo-400">PAPA <span class="text-white">MONITOR</span></h1>
+                </div>
+
+                <div class="hidden sm:flex flex-col">
                     <span class="text-[10px] uppercase tracking-widest text-slate-500 font-bold">España (MAD)</span>
                     <span id="clock-es" class="text-xl font-mono text-indigo-400 tracking-wider">00:00:00</span>
                 </div>
-                <div class="flex flex-col border-l border-white/10 pl-8">
+                <div class="hidden sm:flex flex-col border-l border-white/10 pl-8">
                     <span class="text-[10px] uppercase tracking-widest text-slate-500 font-bold">Argentina (BUE)</span>
                     <span id="clock-ar" class="text-xl font-mono text-cyan-400 tracking-wider">00:00:00</span>
                 </div>
             </div>
 
-            <div class="flex items-center gap-4">
+            <div class="flex items-center gap-3 sm:gap-4">
                 <button class="p-2 glass hover:bg-white/10 transition-colors relative">
                     <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
@@ -72,15 +77,15 @@
                     <span id="notification-dot" class="absolute top-2 right-2 w-2 h-2 bg-indigo-500 rounded-full hidden"></span>
                 </button>
                 <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-indigo-600 to-rose-400 p-0.5">
-                    <div class="w-full h-full rounded-full bg-slate-900 flex items-center justify-center text-xs font-bold">PM</div>
+                    <div class="w-full h-full rounded-full bg-slate-900 flex items-center justify-center text-xs font-bold text-white">PM</div>
                 </div>
             </div>
         </header>
 
         <!-- SECCIÓN: ESTADO -->
-        <section id="inicio" class="content-section active px-10 pb-10 space-y-8">
+        <section id="inicio" class="content-section active px-6 sm:px-10 pb-10 space-y-8">
             <!-- Status Highlight -->
-            <div id="status-card" class="status-card-bg rounded-[2rem] p-12 flex flex-col items-center justify-center text-center relative overflow-hidden">
+            <div id="status-card" class="status-card-bg rounded-[2rem] p-8 sm:p-12 flex flex-col items-center justify-center text-center relative overflow-hidden">
                 <!-- Abstract Glow -->
                 <div id="status-glow" class="absolute -top-24 -left-24 w-64 h-64 bg-rose-500/20 blur-[100px] rounded-full transition-colors duration-1000"></div>
                 
@@ -89,7 +94,7 @@
                         <span id="status-dot" class="w-2 h-2 rounded-full bg-rose-500 pulse-offline"></span>
                         Estado del Monitor
                     </div>
-                    <h2 id="status-text" class="text-7xl font-black mb-4 tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-white to-white/40">OFFLINE</h2>
+                    <h2 id="status-text" class="text-5xl sm:text-7xl font-black mb-4 tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-white to-white/40">OFFLINE</h2>
                     <p id="play-time" class="text-slate-400 text-lg max-w-md mx-auto">Cargando información del sistema...</p>
                     
                     <div class="mt-8 flex gap-6 items-center justify-center">
@@ -111,7 +116,7 @@
                 <div class="flex items-center justify-between">
                     <h3 class="text-xl font-bold tracking-tight flex items-center gap-3">
                         Últimas Sesiones
-                        <span class="px-2 py-0.5 rounded text-[10px] bg-white/5 border border-white/10 text-slate-400 uppercase tracking-widest">Reciente</span>
+                        <span class="px-3 py-1 rounded-lg text-[10px] bg-white/5 border border-white/10 text-slate-500 font-black tracking-widest">HISTORIAL</span>
                     </h3>
                     <button onclick="showSection('sesiones', document.querySelectorAll('.nav-btn')[2])" class="text-sm text-indigo-400 hover:text-indigo-300 transition-colors font-medium">Ver todo el historial</button>
                 </div>
@@ -123,7 +128,7 @@
         </section>
 
         <!-- SECCIÓN: GRÁFICOS -->
-        <section id="graficos" class="content-section px-10 pb-10 space-y-8">
+        <section id="graficos" class="content-section px-6 sm:px-10 pb-10 space-y-8">
             <div class="flex flex-col">
                 <h2 class="text-3xl font-black tracking-tighter">GRÁFICOS</h2>
                 <p class="text-slate-400">Minutos jugados por día (últimos 30 días)</p>
@@ -137,7 +142,7 @@
         </section>
 
         <!-- SECCIÓN: SESIONES -->
-        <section id="sesiones" class="content-section px-10 pb-10 space-y-8">
+        <section id="sesiones" class="content-section px-6 sm:px-10 pb-10 space-y-8">
             <div class="flex flex-col">
                 <h2 class="text-3xl font-black tracking-tighter">SESIONES</h2>
                 <p class="text-slate-400">Historial completo de actividad reciente</p>

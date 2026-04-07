@@ -76,37 +76,62 @@ async function loadData() {
     if (!sessions.length) { 
         list.innerHTML = '<div class="glass p-6 text-center text-slate-500">Sin actividad reciente</div>'; 
     } else {
-        list.innerHTML = sessions.slice(0, 3).map((s, i) => `
-            <div class="glass p-6 group hover:bg-white/[0.05] transition-all cursor-pointer flex items-center justify-between" onclick="showSection('sesiones', document.querySelectorAll('.nav-btn')[2])">
-                <div class="flex items-center gap-6">
-                    <div class="w-12 h-12 rounded-2xl ${s.is_active ? 'bg-emerald-500/10 text-emerald-400' : 'bg-indigo-500/10 text-indigo-400'} flex items-center justify-center group-hover:scale-110 transition-transform">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                        </svg>
-                    </div>
-                    <div>
-                        <h4 class="text-lg font-semibold flex items-center gap-3">
-                            Sesión #${sessions.length - i}
-                            <span class="text-xs font-normal text-slate-500">${fmt(s.start_time, { day: '2-digit', month: 'short' })}</span>
-                        </h4>
-                        <div class="flex items-center gap-4 mt-1 text-sm">
-                            <span class="text-indigo-300 font-medium">${fmt(s.start_time, { hour: '2-digit', minute: '2-digit' })} — ${s.is_active ? 'Ahora' : fmt(s.end_time, { hour: '2-digit', minute: '2-digit' })}</span>
-                            <span class="text-slate-500">•</span>
-                            <span class="text-emerald-400 font-medium">${getDur(s.start_time, s.end_time, s.is_active)}</span>
+        list.innerHTML = sessions.slice(0, 3).map((s, i) => {
+            const sesNumber = sessions.length - i;
+            const dateStr = fmt(s.start_time, { day: 'numeric', month: 'short', year: 'numeric' });
+            
+            // Tiempos específicos
+            const esStart = fmt(s.start_time, { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Madrid' });
+            const esEnd = s.is_active ? 'Ahora' : fmt(s.end_time, { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Madrid' });
+            const arStart = fmt(s.start_time, { hour: '2-digit', minute: '2-digit', timeZone: 'America/Argentina/Buenos_Aires' });
+            const arEnd = s.is_active ? 'Ahora' : fmt(s.end_time, { hour: '2-digit', minute: '2-digit', timeZone: 'America/Argentina/Buenos_Aires' });
+            const duration = getDur(s.start_time, s.end_time, s.is_active);
+
+            return `
+                <div class="glass p-5 sm:p-7 group hover:bg-white/[0.05] transition-all cursor-pointer flex items-center justify-between gap-4" onclick="showSection('sesiones', document.querySelectorAll('.nav-btn')[2])">
+                    <div class="flex items-center gap-4 sm:gap-6">
+                        <!-- Icono -->
+                        <div class="w-12 h-12 shrink-0 rounded-2xl ${s.is_active ? 'bg-emerald-500/10 text-emerald-400' : 'bg-indigo-500/10 text-indigo-400'} flex items-center justify-center group-hover:scale-110 transition-transform">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                            </svg>
+                        </div>
+                        
+                        <div class="flex flex-col gap-1">
+                            <div class="flex items-baseline gap-2 flex-wrap">
+                                <h4 class="text-base sm:text-lg font-bold text-white leading-tight">Sesión #${sesNumber}</h4>
+                                <span class="text-[11px] sm:text-xs text-slate-500 font-medium">${dateStr}</span>
+                            </div>
+                            
+                            <div class="flex flex-col gap-1 mt-0.5">
+                                <div class="flex items-center gap-3">
+                                    <span class="px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-[9px] sm:text-[10px] text-slate-500 font-black tracking-widest leading-none">ES</span>
+                                    <div class="flex items-center gap-1.5">
+                                        <span class="text-xs sm:text-sm text-indigo-100 font-medium">${esStart} — ${esEnd}</span>
+                                        <span class="text-slate-700 font-black">•</span>
+                                        <span class="text-emerald-400 font-bold text-xs sm:text-sm">${duration}</span>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-3">
+                                    <span class="px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-[9px] sm:text-[10px] text-slate-500 font-black tracking-widest leading-none">AR</span>
+                                    <span class="text-xs sm:text-sm text-cyan-400 font-medium">${arStart} — ${arEnd}</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                </div>
-                <div class="flex items-center gap-8">
-                    <div class="text-right hidden sm:block">
-                        <p class="text-xs text-slate-500 uppercase font-bold tracking-widest">Estado</p>
-                        <span class="text-white text-sm">${s.is_active ? 'En curso' : 'Finalizada'}</span>
+
+                    <div class="flex items-center gap-4 sm:gap-10 shrink-0">
+                        <div class="text-right hidden sm:flex flex-col items-end">
+                            <p class="text-[9px] sm:text-[10px] text-slate-500 uppercase font-bold tracking-widest leading-none mb-1">Estado</p>
+                            <span class="text-white text-xs sm:text-sm font-black">${s.is_active ? 'En curso' : 'Finalizada'}</span>
+                        </div>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 sm:w-5 sm:h-5 text-slate-600 group-hover:text-white group-hover:translate-x-1 transition-all" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                        </svg>
                     </div>
-                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-slate-600 group-hover:text-white transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                    </svg>
                 </div>
-            </div>
-        `).join('');
+            `;
+        }).join('');
     }
 
     const top = sessions[0];

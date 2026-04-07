@@ -184,6 +184,21 @@
                                 <button onclick="updateProfile()" class="w-full py-3 bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white font-bold rounded-xl transition-colors">Guardar Cambios</button>
                             </div>
                         </div>
+
+                        <!-- Nueva Sección: Enlace con App de Escritorio -->
+                        <div class="glass p-6 rounded-2xl space-y-4 border border-blue-500/30 bg-blue-900/10">
+                            <div>
+                                <h3 class="font-bold text-lg text-blue-400">Token de Vinculación Seguro</h3>
+                                <p class="text-xs text-slate-400 mt-1">Usa este token para conectar la aplicación Monitor de escritorio a tu cuenta.</p>
+                            </div>
+                            <button onclick="copyTrackerToken()" class="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl transition-colors flex justify-center items-center gap-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                  <path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z" />
+                                  <path d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z" />
+                                </svg>
+                                <span id="copy-token-text">Copiar Token Seguro</span>
+                            </button>
+                        </div>
                     </div>
 
                     <!-- Columna Derecha: Lista de Amigos -->
@@ -238,6 +253,6 @@
     </div>
 
     <!-- Cargar archivo JS -->
-    <script src="/monitor.js?v=2.3"></script>
+    <script src="/monitor.js?v=2.4"></script>
 </body>
 </html>

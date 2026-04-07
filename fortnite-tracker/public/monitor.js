@@ -182,6 +182,21 @@ async function copyMyID() {
     }
 }
 
+async function copyTrackerToken() {
+    const session = await sbClient.auth.getSession();
+    if (session.data && session.data.session) {
+        const token = session.data.session.access_token;
+        navigator.clipboard.writeText(token);
+        const btnText = document.getElementById('copy-token-text');
+        btnText.textContent = "¡Copiado!";
+        setTimeout(() => {
+            btnText.textContent = "Copiar Token Seguro";
+        }, 2000);
+    } else {
+        alert("Error al obtener la sesión");
+    }
+}
+
 async function updateProfile() {
     const newName = document.getElementById('my-display-name').value;
     if (!newName) return;

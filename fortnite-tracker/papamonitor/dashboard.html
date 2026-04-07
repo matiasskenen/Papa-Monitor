@@ -352,19 +352,9 @@
             Gráficos
           </button>
 
-          <button onclick="switchTab('profile')" id="btn-profile"
-            class="sidebar-item w-full flex items-center gap-3 px-8 py-4 text-sm font-bold transition-all hover:bg-white/5 text-neutral-500">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
-              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
-              <circle cx="12" cy="7" r="4" />
-            </svg>
-            Mi Perfil
-          </button>
-
           <div class="relative group px-4 mt-2">
-            <button disabled
-              class="w-full flex items-center justify-between gap-3 px-4 py-4 text-sm font-bold text-neutral-700 cursor-not-allowed">
+            <button onclick="switchTab('friends')" id="btn-friends"
+              class="sidebar-item w-full flex items-center justify-between gap-3 px-4 py-4 text-sm font-bold transition-all hover:bg-white/5 text-neutral-500">
               <div class="flex items-center gap-3">
                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
                   stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -375,8 +365,6 @@
                 </svg>
                 Amigos
               </div>
-              <span
-                class="text-[8px] bg-neutral-800 text-neutral-500 px-2 py-1 rounded font-black tracking-widest uppercase">Próximamente</span>
             </button>
           </div>
         </nav>
@@ -590,16 +578,17 @@
             </div>
           </div>
 
-          <!-- Tab: Profile (Simple) -->
-          <div id="section-profile" class="tab-content hidden space-y-8 animate-in slide-in-from-bottom-4 duration-500">
+          <!-- Tab: Friends -->
+          <div id="section-friends" class="tab-content hidden space-y-8 animate-in slide-in-from-bottom-4 duration-500">
             <div class="glass-card rounded-3xl p-10 flex flex-col items-center">
               <div
                 class="w-28 h-28 rounded-3xl bg-gradient-to-tr from-blue-600 to-indigo-900 p-1 mb-6 shadow-[0_0_30px_rgba(59,130,246,0.3)]">
                 <div
-                  class="w-full h-full bg-[#0c0c10] rounded-[1.2rem] flex items-center justify-center text-4xl font-black italic text-white">
-                  A</div>
+                  class="w-full h-full bg-[#0c0c10] rounded-[1.2rem] flex items-center justify-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-white"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                </div>
               </div>
-              <h2 class="text-3xl font-black italic tracking-tighter uppercase mb-1">Cuenta de Monitor</h2>
+              <h2 class="text-3xl font-black italic tracking-tighter uppercase mb-1">Amigos</h2>
               <p class="text-blue-500 text-[10px] font-black uppercase tracking-[0.3em]">Acceso de Tracker Local</p>
 
               <div class="mt-8 w-full max-w-sm text-left">
@@ -608,11 +597,11 @@
                   Enlace de Cuenta
                 </h2>
                 <div class="flex flex-col gap-3">
-                  <input type="text" id="jwt-token-input" placeholder="Pegá acá tu Token JWT..." class="w-full bg-black/40 border border-white/5 rounded-xl px-4 py-3 text-xs focus:outline-none focus:border-blue-500 transition-colors text-white font-mono placeholder:text-neutral-600">
+                  <input type="text" id="jwt-token-input" placeholder="Pegá acá tu Token de Vinculación..." class="w-full bg-black/40 border border-white/5 rounded-xl px-4 py-3 text-xs focus:outline-none focus:border-blue-500 transition-colors text-white font-mono placeholder:text-neutral-600">
                   <button onclick="if(window.pywebview) { window.pywebview.api.save_token(document.getElementById('jwt-token-input').value); alert('Monitor Enlazado Exitosamente!'); document.getElementById('jwt-token-input').value=''; }" class="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white font-black rounded-xl transition-colors text-xs uppercase tracking-widest shadow-[0_0_15px_rgba(59,130,246,0.3)] hover:shadow-[0_0_25px_rgba(59,130,246,0.5)]">
-                    Enlazar Monitor Local
+                    Vincular a Mi Cuenta
                   </button>
-                  <p class="text-[9px] text-neutral-500 leading-relaxed mt-3 p-3 bg-white/5 rounded-lg border border-white/5">Para obtener tu Token, entrá al Dashboard Web en <span class="text-blue-400 font-bold">papa-monitor.vercel.app</span>, presioná F12, ve a Consola y ejecutá <span class="text-white font-mono bg-black px-1 rounded inline-block mt-1">copy((await supabase.auth.getSession()).data.session.access_token)</span> y pegalo aquí arriba.</p>
+                  <p class="text-[9px] text-neutral-500 leading-relaxed mt-3 p-3 bg-white/5 rounded-lg border border-white/5">Para obtener tu Token, inicia sesión en la plataforma Web (<span class="text-blue-400 font-bold">papa-monitor.vercel.app</span>), ve a la solapa <strong class="text-white">Amigos</strong> y haz clic en "Copiar Token de Vinculación Seguro". Luego pegalo aquí arriba.</p>
                 </div>
               </div>
             </div>

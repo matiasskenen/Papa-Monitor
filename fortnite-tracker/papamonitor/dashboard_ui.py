@@ -387,7 +387,6 @@ class PapaMonitorApp:
                     # Guardar estadísticas locales
                     try:
                         if self.session_start_iso:
-                            from datetime import datetime
                             # Python 3.11+ maneja Z, pero para versiones anteriores:
                             parsed_start = self.session_start_iso.rstrip("Z")
                             start_dt = datetime.fromisoformat(parsed_start)

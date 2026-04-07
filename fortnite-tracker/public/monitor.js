@@ -2,7 +2,7 @@
 let API_BASE = "";
 let SUPABASE_URL = "";
 let SUPABASE_ANON_KEY = "";
-let supabase = null;
+let sbClient = null;
 let sessionUser = null;
 let userProfile = null;
 let pinnedFriendId = null;
@@ -80,7 +80,7 @@ async function initApp() {
         SUPABASE_ANON_KEY = data.supabase_anon_key;
 
         if (window.supabase) {
-            supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
             checkAuth();
         } else {
             console.error("Supabase SDK no cargado.");
@@ -92,10 +92,10 @@ async function initApp() {
 
 // ── Autenticación ──
 async function checkAuth() {
-    const { data: { session } } = await supabase.auth.getSession();
+    const { data: { session } } = await sbClient.auth.getSession();
     
     // Configurar listener para la UI de PyWebView donde la URL de respuesta tenga el token
-    supabase.auth.onAuthStateChange((event, session) => {
+    sbClient.auth.onAuthStateChange((event, session) => {
         if (session) {
             if (window.pywebview) {
                 // Notificarle a Python el JWT para que lo guarde y use
@@ -119,7 +119,7 @@ async function checkAuth() {
 
 document.getElementById('btn-login-google').addEventListener('click', async () => {
     // Si estamos en Pywebview, supabase intentará abrir popup/redirect.
-    const { data, error } = await supabase.auth.signInWithOAuth({
+    const { data, error } = await sbClient.auth.signInWithOAuth({
         provider: 'google',
         options: {
             redirectTo: window.location.origin + '/dashboard.html' // URL temporal o correcta en vercel
@@ -131,7 +131,7 @@ document.getElementById('btn-login-google').addEventListener('click', async () =
 });
 
 async function logout() {
-    await supabase.auth.signOut();
+    await sbClient.auth.signOut();
 }
 
 function handleLogoutState() {
@@ -157,7 +157,7 @@ async function handleLoginSuccess(user) {
 
 // ── Perfiles y Amigos ──
 async function loadMyProfile() {
-    const { data, error } = await supabase.from('users_profiles').select('*').eq('id', sessionUser.id).single();
+    const { data, error } = await sbClient.from('users_profiles').select('*').eq('id', sessionUser.id).single();
     if (data) {
         userProfile = data;
         pinnedFriendId = data.pinned_friend_id;
@@ -185,7 +185,7 @@ async function copyMyID() {
 async function updateProfile() {
     const newName = document.getElementById('my-display-name').value;
     if (!newName) return;
-    const { error } = await supabase.from('users_profiles').update({ display_name: newName }).eq('id', sessionUser.id);
+    const { error } = await sbClient.from('users_profiles').update({ display_name: newName }).eq('id', sessionUser.id);
     if (!error) {
         alert("Perfil actualizado correctamente");
         loadMyProfile();
@@ -194,7 +194,7 @@ async function updateProfile() {
 
 async function loadFriendsData() {
     // Cargar pendientes a mí
-    const { data: pending } = await supabase.from('friends').select('id, user_id, status, users_profiles!friends_user_id_fkey(display_name)').eq('friend_id', sessionUser.id).eq('status', 'pending');
+    const { data: pending } = await sbClient.from('friends').select('id, user_id, status, users_profiles!friends_user_id_fkey(display_name)').eq('friend_id', sessionUser.id).eq('status', 'pending');
     
     const pendCont = document.getElementById('pending-requests-container');
     const pendList = document.getElementById('pending-friends-list');
@@ -216,7 +216,7 @@ async function loadFriendsData() {
     }
 
     // Cargar mis amigos (donde soy user_id o friend_id, y status='accepted')
-    const { data: friendsData } = await supabase.from('friends').select(`
+    const { data: friendsData } = await sbClient.from('friends').select(`
         id, status, user_id, friend_id,
         user_profile:users_profiles!friends_user_id_fkey(id, display_name, friend_code),
         friend_profile:users_profiles!friends_friend_id_fkey(id, display_name, friend_code)
@@ -260,7 +260,7 @@ async function sendFriendRequest() {
     if (!input) return;
     
     // Buscar usuario por código de amigo
-    const { data: targetUser } = await supabase.from('users_profiles').select('id').eq('friend_code', input).single();
+    const { data: targetUser } = await sbClient.from('users_profiles').select('id').eq('friend_code', input).single();
     
     if (!targetUser) {
         msgEl.textContent = "Usuario no encontrado.";
@@ -274,7 +274,7 @@ async function sendFriendRequest() {
     }
     
     // Consultar si ya existe
-    const { data: existing } = await supabase.from('friends').select('*').or(`and(user_id.eq.${sessionUser.id},friend_id.eq.${targetUser.id}),and(user_id.eq.${targetUser.id},friend_id.eq.${sessionUser.id})`);
+    const { data: existing } = await sbClient.from('friends').select('*').or(`and(user_id.eq.${sessionUser.id},friend_id.eq.${targetUser.id}),and(user_id.eq.${targetUser.id},friend_id.eq.${sessionUser.id})`);
     
     if (existing && existing.length > 0) {
         msgEl.textContent = "Ya enviaste o tienes una conexión con este usuario.";
@@ -282,7 +282,7 @@ async function sendFriendRequest() {
         return;
     }
 
-    const { error } = await supabase.from('friends').insert({ user_id: sessionUser.id, friend_id: targetUser.id, status: 'pending' });
+    const { error } = await sbClient.from('friends').insert({ user_id: sessionUser.id, friend_id: targetUser.id, status: 'pending' });
     if (!error) {
         msgEl.textContent = "Solicitud enviada correctamente.";
         msgEl.className = "text-sm font-medium h-4 text-emerald-400 text-center";
@@ -293,18 +293,18 @@ async function sendFriendRequest() {
 }
 
 async function acceptFriend(id) {
-    await supabase.from('friends').update({ status: 'accepted' }).eq('id', id);
+    await sbClient.from('friends').update({ status: 'accepted' }).eq('id', id);
     loadFriendsData();
 }
 
 async function rejectFriend(id) {
-    await supabase.from('friends').delete().eq('id', id);
+    await sbClient.from('friends').delete().eq('id', id);
     loadFriendsData();
 }
 
 async function removeFriend(id) {
     if (confirm("¿Estás seguro de que quieres eliminar a este amigo?")) {
-        await supabase.from('friends').delete().eq('id', id);
+        await sbClient.from('friends').delete().eq('id', id);
         // Si estaba fijado, des-fijarlo si es que de hecho era él (logica simple, limpiaremos el pinnedId del perfil)
         // por pereza recargaremos el perfil completo
         loadMyProfile();
@@ -313,7 +313,7 @@ async function removeFriend(id) {
 }
 
 async function pinFriend(targetUserId) {
-    const { error } = await supabase.from('users_profiles').update({ pinned_friend_id: targetUserId }).eq('id', sessionUser.id);
+    const { error } = await sbClient.from('users_profiles').update({ pinned_friend_id: targetUserId }).eq('id', sessionUser.id);
     if (!error) {
         pinnedFriendId = targetUserId;
         loadFriendsData();
@@ -331,7 +331,7 @@ function updateInicioView() {
         document.getElementById('monitor-content').classList.remove('hidden');
         
         // Cargar nombre del amigo
-        supabase.from('users_profiles').select('display_name').eq('id', pinnedFriendId).single().then(({data}) => {
+        sbClient.from('users_profiles').select('display_name').eq('id', pinnedFriendId).single().then(({data}) => {
             if (data) {
                 document.getElementById('pinned-friend-name').textContent = data.display_name;
             }
@@ -344,7 +344,7 @@ async function loadAppStatusData() {
     if (!userProfile || !pinnedFriendId) return;
 
     // Buscar sesiones recientes de ese usuario
-    const { data: sessions } = await supabase.from('sessions')
+    const { data: sessions } = await sbClient.from('sessions')
         .select('*')
         .eq('user_id', pinnedFriendId)
         .order('start_time', { ascending: false })
@@ -413,7 +413,7 @@ async function loadAppStatusData() {
 async function loadGraficos() {
     if (!pinnedFriendId) return;
 
-    const { data: sessions } = await supabase.from('sessions').select('*')
+    const { data: sessions } = await sbClient.from('sessions').select('*')
         .eq('user_id', pinnedFriendId)
         .order('start_time', { ascending: false })
         .limit(30);

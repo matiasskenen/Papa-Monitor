@@ -201,12 +201,13 @@ def heal_profile():
     
     try:
         from random import randint
-        # Verificar si existe el perfil usando admin role
-        profile = sb_admin.table("users_profiles").select("id").eq("id", user_id).execute()
+        # Verificar si existe el perfil
+        profile = supabase.table("users_profiles").select("id").eq("id", user_id).execute()
         if not profile.data:
             # Insertar uno nuevo manualmente
+            # Generar un código único de 6 dígitos
             new_code = str(randint(100000, 999999))
-            sb_admin.table("users_profiles").insert({
+            supabase.table("users_profiles").insert({
                 "id": user_id,
                 "email": email or f"fantasma_{user_id}@app.com",
                 "display_name": email.split('@')[0] if email else "Usuario",
@@ -214,7 +215,7 @@ def heal_profile():
             }).execute()
         return jsonify({"success": True})
     except Exception as e:
-        logger.error(f"Error curando perfil fantasma: {e}")
+        print(f"Error curando perfil: {e}")
         return jsonify({"error": str(e)}), 500
 
 

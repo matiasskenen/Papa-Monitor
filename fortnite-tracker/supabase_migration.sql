@@ -46,13 +46,15 @@ RETURNS TEXT AS $$
 DECLARE
     new_code TEXT;
     done BOOL;
+    safe_counter INT := 0;
 BEGIN
     done := false;
-    WHILE NOT done LOOP
-        new_code := lpad(floor(random() * 999999)::text, 6, '0');
+    WHILE NOT done AND safe_counter < 100 LOOP
+        new_code := lpad(floor(random() * 1000000)::text, 6, '0');
         IF NOT EXISTS (SELECT 1 FROM public.users_profiles WHERE friend_code = new_code) THEN
             done := true;
         END IF;
+        safe_counter := safe_counter + 1;
     END LOOP;
     RETURN new_code;
 END;
@@ -60,17 +62,22 @@ $$ LANGUAGE plpgsql VOLATILE SECURITY DEFINER;
 
 CREATE OR REPLACE FUNCTION public.handle_new_user() 
 RETURNS trigger AS $$
+DECLARE
+  default_name TEXT;
 BEGIN
+  default_name := COALESCE(split_part(new.email, '@', 1), 'Usuario');
+  
   INSERT INTO public.users_profiles (id, email, display_name, friend_code)
   VALUES (
       new.id, 
-      COALESCE(new.email, 'correo_temporal_' || new.id || '@app.com'), 
-      COALESCE(split_part(new.email, '@', 1), 'Usuario'),
-      generate_friend_code()
+      COALESCE(new.email, 'user_' || substr(new.id::text, 1, 8) || '@app.com'), 
+      default_name,
+      public.generate_friend_code()
   );
   RETURN new;
 EXCEPTION WHEN OTHERS THEN
-  -- Si llega a fallar algo, retornamos NEW igual para que no nos bloquee el inicio de sesión
+  -- En caso de error, RAISE NOTICE para debug en logs de supabase
+  -- Pero retornamos NEW para no romper el flujo de Auth
   RETURN new;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;

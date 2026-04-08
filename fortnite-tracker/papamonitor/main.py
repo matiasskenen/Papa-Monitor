@@ -28,7 +28,8 @@ def run() -> None:
         sys.exit(0)
     # --start-minimized: se pasa cuando Windows inicia el programa en el arranque
     # La detección de la bandera ocurre dentro de PapaMonitorApp.__init__
-    PapaMonitorApp()
+    app = PapaMonitorApp()
+    app.run()
 
 
 if __name__ == "__main__":

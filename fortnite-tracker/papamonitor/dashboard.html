@@ -55,8 +55,34 @@
       font-weight: 800;
       letter-spacing: 0.2em;
       text-transform: uppercase;
-      margin-top: 15px;
-      animation: pulse-native 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+      margin-top: 20px;
+      margin-bottom: 10px;
+    }
+
+    .boot-progress-container {
+      width: 200px;
+      height: 4px;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 10px;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .boot-progress-bar {
+      width: 0%;
+      height: 100%;
+      background: #3b82f6;
+      box-shadow: 0 0 15px rgba(59, 130, 246, 0.5);
+      transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .boot-status-text {
+      color: #64748b;
+      font-size: 9px;
+      font-weight: 700;
+      text-transform: uppercase;
+      margin-top: 10px;
+      letter-spacing: 0.1em;
     }
 
     @keyframes pulse-native {
@@ -191,7 +217,11 @@
   <!-- ==================== SPINNER PANTALLA CARGA ==================== -->
   <div id="initial-loader">
     <div class="spinner-native"></div>
-    <div class="loader-text-native">Iniciando Motor...</div>
+    <div class="loader-text-native">PapaMonitor v2</div>
+    <div class="boot-progress-container">
+      <div id="boot-bar" class="boot-progress-bar"></div>
+    </div>
+    <div id="boot-status" class="boot-status-text">Iniciando Motor...</div>
   </div>
 
   <!-- ==================== LOGIN OVERLAY ==================== -->
@@ -210,18 +240,20 @@
         </div>
       </div>
 
-      <button onclick="if(window.pywebview) window.pywebview.api.login_google()"
+      <button id="google-login-btn" onclick="if(window.pywebview) window.pywebview.api.login_google()"
         class="w-full flex items-center justify-center gap-3 px-6 py-4 bg-white hover:bg-neutral-100 text-black font-black text-xs uppercase tracking-widest rounded-2xl transition-all shadow-xl active:scale-[0.98]">
-        <svg viewBox="0 0 24 24" class="w-4 h-4" width="24" height="24">
+        <div id="login-spinner" class="hidden w-4 h-4 border-2 border-black/20 border-t-black rounded-full animate-spin"></div>
+        <svg id="google-icon" viewBox="0 0 24 24" class="w-4 h-4" width="24" height="24">
           <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.58c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
           <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
           <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
           <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
         </svg>
-        Continuar con Google
+        <span id="login-btn-text">Continuar con Google</span>
       </button>
 
-      <p class="text-[9px] text-neutral-600 font-bold uppercase">No requiere configurar códigos ni tokens a mano.</p>
+      <p id="login-error-msg" class="text-[9px] text-red-500 font-bold uppercase hidden">Error al conectar</p>
+      <p id="login-subtext" class="text-[9px] text-neutral-600 font-bold uppercase">No requiere configurar códigos ni tokens a mano.</p>
     </div>
   </div>
 
@@ -681,6 +713,53 @@
   <!-- Tailwind Script Asíncrono para evitar bloquear el spinner -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
+    function updateBootProgress(pct, text) {
+      const bar = document.getElementById('boot-bar');
+      const status = document.getElementById('boot-status');
+      if (bar) bar.style.width = pct + '%';
+      if (status) status.innerText = text;
+
+      if (pct >= 100) {
+        setTimeout(() => {
+          const loader = document.getElementById('initial-loader');
+          if (loader) loader.style.opacity = '0';
+          setTimeout(() => {
+            if (loader) loader.style.display = 'none';
+            const content = document.getElementById('app-content');
+            if (content) content.style.opacity = '1';
+          }, 500);
+        }, 800);
+      }
+    }
+
+    function setLoginLoading(isLoading) {
+      const btn = document.getElementById('google-login-btn');
+      const spinner = document.getElementById('login-spinner');
+      const icon = document.getElementById('google-icon');
+      const text = document.getElementById('login-btn-text');
+      const err = document.getElementById('login-error-msg');
+
+      if (isLoading) {
+        btn.classList.add('opacity-80', 'pointer-events-none');
+        spinner.classList.remove('hidden');
+        icon.classList.add('hidden');
+        text.innerText = 'Cargando sesión...';
+        err.classList.add('hidden');
+      } else {
+        btn.classList.remove('opacity-80', 'pointer-events-none');
+        spinner.classList.add('hidden');
+        icon.classList.remove('hidden');
+        text.innerText = 'Continuar con Google';
+      }
+    }
+
+    function setLoginError(msg) {
+      setLoginLoading(false);
+      const err = document.getElementById('login-error-msg');
+      err.innerText = msg;
+      err.classList.remove('hidden');
+    }
+
     // Inicialización al cargar la ventana
     window.addEventListener('load', () => {
       // Remover el spinner y desvanecer la entrada de la app

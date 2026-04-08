@@ -2,6 +2,10 @@ from __future__ import annotations
 
 import json
 import os
+import hmac
+import hashlib
+import time
+import uuid
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 from functools import wraps
@@ -83,11 +87,11 @@ def _cfg_upsert(key: str, value: Any) -> None:
         val = "true" if val else "false"
     elif val is not None and not isinstance(val, str):
         val = str(val)
-    existing = supabase.table("config").select("key").eq("key", key).limit(1).execute().data or []
+    existing = sb_admin.table("config").select("key").eq("key", key).limit(1).execute().data or []
     if existing:
-        supabase.table("config").update({"value": val}).eq("key", key).execute()
+        sb_admin.table("config").update({"value": val}).eq("key", key).execute()
     else:
-        supabase.table("config").insert({"key": key, "value": val}).execute()
+        sb_admin.table("config").insert({"key": key, "value": val}).execute()
 
 
 def emails_enabled() -> bool:
@@ -193,7 +197,7 @@ def heal_profile():
     jwt_token = auth_header.split(" ")[1]
 
     try:
-        user_res = supabase.auth.get_user(jwt_token)
+        user_res = sb_auth.auth.get_user(jwt_token)
         if not user_res or not user_res.user:
             return jsonify({"error": "Invalid auth token"}), 401
         user_id = user_res.user.id
@@ -303,9 +307,9 @@ def handle_status():
                                 print(f"Error Resend to {emp}: {e}")
 
                 else:
-                    supabase.table("sessions").update({"last_heartbeat": now}).eq("id", active_session[0]["id"]).execute()
+                    sb_admin.table("sessions").update({"last_heartbeat": now}).eq("id", active_session[0]["id"]).execute()
             elif active_session:
-                supabase.table("sessions").update({"is_active": False, "end_time": now}).eq("id", active_session[0]["id"]).execute()
+                sb_admin.table("sessions").update({"is_active": False, "end_time": now}).eq("id", active_session[0]["id"]).execute()
 
             return jsonify({"status": "ok"}), 200
         except Exception as e:
@@ -320,7 +324,7 @@ def handle_config():
         return err
     try:
         if request.method == "GET":
-            rows = supabase.table("config").select("*").eq("key", "emails_enabled").limit(1).execute().data or []
+            rows = sb_admin.table("config").select("*").eq("key", "emails_enabled").limit(1).execute().data or []
             if not rows:
                 return jsonify({"key": "emails_enabled", "value": "true"}), 200
             return jsonify(rows[0]), 200
@@ -329,7 +333,7 @@ def handle_config():
             if "enabled" not in body:
                 return jsonify({"error": "enabled requerido"}), 400
             str_val = "true" if body.get("enabled") else "false"
-            supabase.table("config").update({"value": str_val}).eq("key", "emails_enabled").execute()
+            sb_admin.table("config").update({"value": str_val}).eq("key", "emails_enabled").execute()
             return jsonify({"status": "updated"}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -355,7 +359,7 @@ def playtime_stats():
     cutoff = datetime.now(timezone.utc) - timedelta(days=days)
     try:
         res = (
-            supabase.table("sessions")
+            sb_admin.table("sessions")
             .select("*")
             .gte("start_time", cutoff.isoformat())
             .order("start_time", desc=False)
@@ -446,6 +450,38 @@ def test_email():
 
 
 
+
+# --- ALMACENAMIENTO TEMPORAL DE SESIONES PARA LOGIN EXE ---
+# En un entorno real esto iría a Redis o DB, aquí usamos memoria por simplicidad (Vercel lo limpia cada 15-30min)
+auth_sessions = {}
+
+@app.route("/api/auth/session/create", methods=["GET"])
+def create_auth_session():
+    session_id = str(uuid.uuid4())
+    auth_sessions[session_id] = {"token": None, "expires": datetime.now() + timedelta(minutes=5)}
+    return jsonify({"session_id": session_id})
+
+@app.route("/api/auth/session/set", methods=["GET"])
+def set_auth_session():
+    session_id = request.args.get("session_id")
+    token = request.args.get("token")
+    if session_id in auth_sessions:
+        auth_sessions[session_id]["token"] = token
+        return jsonify({"status": "ok"})
+    return jsonify({"error": "Sesion no encontrada o expirada"}), 404
+
+@app.route("/api/auth/session/poll", methods=["GET"])
+def poll_auth_session():
+    session_id = request.args.get("session_id")
+    if session_id in auth_sessions:
+        session = auth_sessions[session_id]
+        if session["token"]:
+            token = session["token"]
+            # Consumir y limpiar
+            del auth_sessions[session_id]
+            return jsonify({"token": token})
+        return jsonify({"token": None})
+    return jsonify({"token": None, "error": "expired"})
 
 if __name__ == "__main__":
     app.run(debug=True, port=5000)

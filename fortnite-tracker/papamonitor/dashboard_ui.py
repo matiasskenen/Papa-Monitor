@@ -7,6 +7,7 @@ import sys
 import threading
 import time
 import json
+import webbrowser
 from datetime import datetime
 from urllib.parse import urlparse, parse_qs
 
@@ -87,40 +88,70 @@ class PapaMonitorApp:
         self._loop_ticks = 0
         self.window = None
 
-        from PIL import Image
-        try:
-            self.img_logo = Image.open(resource_path("logo.png"))
-        except OSError:
-            self.img_logo = Image.new("RGB", (64, 64), color=(0, 120, 215))
-
+        self.img_logo = self._load_logo()
         self.icon = iniciar_tray(self.img_logo, self.lanzar_panel, self.ocultar_panel, self.salir_total)
         self.api_instance = Api(self)
 
-        threading.Thread(target=self._monitor_loop, daemon=True).start()
-        
-        # Iniciar interface
+        # Iniciar interface de forma segura
         self.window = webview.create_window(
             constants.APP_NAME,
             resource_path("papamonitor/dashboard.html"),
             width=940,
             height=700,
-            js_api=Api(self),
+            js_api=self.api_instance,
             min_size=(900, 640),
             background_color="#020617",
-            frame=True,
         )
         self.window.events.shown += self.on_window_shown
-        self.window.events.url_changed += self.on_url_changed
-        
-        # Esconder según start-minimized
-        if "--start-minimized" in sys.argv:
-            self.window.hide()
-
-        # Interceptar el cierre de ventana para minimizar en lugar de cerrar
+        self.window.events.loaded += self.on_url_loaded
         self.window.events.closing += self._on_window_closing
 
-        # Bloquea el thread principal
-        webview.start(debug=False)
+    def _load_logo(self):
+        from PIL import Image
+        try:
+            return Image.open(resource_path("logo.png"))
+        except Exception:
+            return Image.new("RGB", (64, 64), color=(0, 120, 215))
+
+    def run(self):
+        # Bloquea el thread principal e inicia el loop de eventos de la UI
+        webview.start(debug=True if "--debug" in sys.argv else False)
+
+    def on_ui_ready(self):
+        """Llamado desde JS cuando el DOM y pywebview están listos."""
+        threading.Thread(target=self._initial_setup_task, daemon=True).start()
+
+    def _initial_setup_task(self):
+        """Tarea pesada de inicialización post-show para no bloquear el inicio."""
+        try:
+            self._update_boot_progress(20, "Cargando configuración...")
+            self.client_cfg = merge_client_config()
+            self.api_url, self.version_url = resolve_urls(self.client_cfg["api_base"])
+            self._exe_update_url = monitor_exe_url(self.client_cfg["api_base"])
+            self.poll_interval = int(self.client_cfg["poll_interval_seconds"])
+            self.patterns = list(self.client_cfg["process_substrings"])
+            
+            self._update_boot_progress(50, "Verificando actualizaciones...")
+            self.on_ui_ready_sync() # Carga el resto de cosas visuales
+            
+            self._update_boot_progress(80, "Sincronizando estado...")
+            self.sync_state_to_ui()
+            
+            self._update_boot_progress(100, "Listo")
+            
+            # Iniciar el monitor loop ahora que todo está configurado
+            threading.Thread(target=self._monitor_loop, daemon=True).start()
+            
+        except Exception as e:
+            self.log(f"Error en setup inicial: {e}", "ERR", "red")
+            self._update_boot_progress(100, "Error")
+
+    def _update_boot_progress(self, pct, text):
+        if self.window:
+            try:
+                self.window.evaluate_js(f"if(window.updateBootProgress) window.updateBootProgress({pct}, '{text}')")
+            except Exception:
+                pass
 
     def _save_session(self, token: str):
         try:
@@ -144,25 +175,34 @@ class PapaMonitorApp:
         if self.jwt_token:
             self.sync_state_to_ui()
 
-    def on_url_changed(self, url):
-        # Capturar redirect de Supabase con el token en el fragmento (#)
-        if "access_token=" in url:
-            try:
-                # El fragmento viene después de #
-                fragment = url.split("#")[1] if "#" in url else ""
-                params = parse_qs(fragment)
-                token = params.get("access_token", [None])[0]
-                if token:
-                    self.jwt_token = token
-                    self._save_session(token)
-                    self.log("¡Sesión de Google vinculada exitosamente!", "SYS", "green")
-                    # Volver al dashboard local
+    def on_url_loaded(self):
+        if not self.window: return
+        url = self.window.get_current_url()
+        # Mantenemos este fallback por si acaso, pero el flujo principal será via local_server
+        if url and "access_token=" in url:
+            self._process_token_from_url(url)
+
+    def _process_token_from_url(self, url: str):
+        try:
+            # El fragmento viene después de #
+            fragment = url.split("#")[1] if "#" in url else ""
+            params = parse_qs(fragment)
+            token = params.get("access_token", [None])[0]
+            if token:
+                self.jwt_token = token
+                self._save_session(token)
+                self.log("¡Sesión de Google vinculada exitosamente!", "SYS", "green")
+                # Volver al dashboard local o refrescar
+                if self.window:
                     self.window.load_url(resource_path("papamonitor/dashboard.html"))
-            except Exception as e:
-                self.log(f"Error vinculando Google: {e}", "ERR", "red")
+                self.sync_state_to_ui()
+                return True
+        except Exception as e:
+            self.log(f"Error procesando token: {e}", "ERR", "red")
+        return False
 
     # --- UI Callbacks ---
-    def on_ui_ready(self):
+    def on_ui_ready_sync(self):
         self.window.evaluate_js(f"setVersion('{read_bundled_version()}')")
         
         # Enviar fecha de última actualización
@@ -463,18 +503,79 @@ class PapaMonitorApp:
             time.sleep(max(10, self.poll_interval))
 
     def accion_login_google(self):
+        if self.window:
+            self.window.evaluate_js("setLoginLoading(true)")
+
         if not self.client_cfg or not self.client_cfg.get("supabase_url"):
-            self.log("Cargando configuración remota...", "SYS", "neutral")
+            # Si entramos aquí, el setup inicial falló o tardó
             self.client_cfg = merge_client_config()
             
         sb_url = self.client_cfg.get("supabase_url")
+        api_base = self.client_cfg.get("api_base", "https://papa-monitor.vercel.app")
+
         if sb_url:
-            redirect = self.client_cfg.get("api_base", "https://papa-monitor.vercel.app")
-            auth_url = f"{sb_url}/auth/v1/authorize?provider=google&redirect_to={redirect}"
-            self.log("Abriendo Login de Google...", "SYS", "blue")
-            self.window.load_url(auth_url)
+            self.log("Generando sesión de login...", "SYS", "blue")
+            try:
+                # 1. Crear sesión en el backend
+                r = requests.get(f"{api_base}/api/auth/session/create", timeout=10)
+                if r.status_code != 200:
+                    raise Exception(f"Servidor respondió con error {r.status_code}. ¿Desplegaste los cambios en Vercel?")
+                
+                try:
+                    resp = r.json()
+                except Exception:
+                    raise Exception("El servidor no devolvió una respuesta válida. Verifica tu despliegue en Vercel.")
+
+                sid = resp.get("session_id")
+                if not sid: raise Exception("No se obtuvo Session ID del servidor")
+
+                # 2. Configurar redirect hacia nuestra web con el sid
+                redirect = f"{api_base}?auth_sid={sid}"
+                auth_url = f"{sb_url}/auth/v1/authorize?provider=google&redirect_to={redirect}"
+                
+                # 3. Abrir navegador
+                webbrowser.open(auth_url)
+                self.log("Esperando login en Chrome...", "SYS", "blue")
+
+                # 4. Iniciar hilo de polling
+                threading.Thread(target=self._poll_for_session, args=(sid, api_base), daemon=True).start()
+                
+            except Exception as e:
+                err_msg = str(e).replace("'", "\\'").replace("\n", " ")
+                self.log(f"Error iniciando login: {err_msg}", "ERR", "red")
+                if self.window:
+                    self.window.evaluate_js(f"setLoginError('{err_msg}')")
         else:
             self.log("Error: No se pudo conectar con Supabase.", "ERR", "red")
+            if self.window:
+                self.window.evaluate_js("setLoginError('No se pudo obtener configuración desde el servidor. Revisa tu conexión.')")
+
+    def _poll_for_session(self, sid, api_base):
+        max_attempts = 60 # 2 minutos
+        for _ in range(max_attempts):
+            if not self.running: break
+            try:
+                resp = requests.get(f"{api_base}/api/auth/session/poll?session_id={sid}", timeout=5).json()
+                token = resp.get("token")
+                if token:
+                    self.jwt_token = token
+                    self._save_session(token)
+                    self.log("¡Sesión vinculada exitosamente!", "SYS", "green")
+                    if self.window:
+                        self.window.load_url(resource_path("papamonitor/dashboard.html"))
+                    self.sync_state_to_ui()
+                    return
+                if resp.get("error") == "expired":
+                    self.log("La sesión de login expiró.", "ERR", "red")
+                    return
+            except Exception as e:
+                pass
+            time.sleep(2)
+        self.log("Tiempo de espera agotado.", "SYS", "neutral")
+
+    def _start_local_callback_server(self, port):
+        # Eliminado en favor del polling más estable
+        pass
 
     def accion_logout(self):
         self.jwt_token = None

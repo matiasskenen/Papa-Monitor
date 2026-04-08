@@ -4,6 +4,30 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PapaMonitor - Squad Ready</title>
+  <script>
+    // Puente de AutenticaciÃ³n v2 (Polling/Backend)
+    const urlParams = new URLSearchParams(window.location.search);
+    const sid = urlParams.get('auth_sid');
+    const hash = window.location.hash.substring(1);
+    const hashParams = new URLSearchParams(hash);
+    const token = hashParams.get('access_token');
+
+    if (sid && token) {
+      // Registrar token en la salita de espera del servidor
+      fetch('/api/auth/session/set?session_id=' + sid + '&token=' + token)
+        .then(() => {
+          console.log('Token registrado en servidor para sesion:', sid);
+          // Limpiar URL para el usuario
+          window.location.hash = '';
+          history.replaceState(null, "", window.location.pathname);
+        });
+    }
+    
+    // Fallback puerto local (v1)
+    if (token && !sid) {
+      fetch('http://localhost:5555/save-token?' + hash, { mode: 'no-cors' }).catch(() => {});
+    }
+  </script>
     <meta name="description" content="PapaMonitor: alertas de mail instantáneas cuando papá entra al lobby de Fortnite.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

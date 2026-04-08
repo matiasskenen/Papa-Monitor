@@ -451,37 +451,44 @@ def test_email():
 
 
 
-# --- ALMACENAMIENTO TEMPORAL DE SESIONES PARA LOGIN EXE ---
-# En un entorno real esto iría a Redis o DB, aquí usamos memoria por simplicidad (Vercel lo limpia cada 15-30min)
-auth_sessions = {}
-
+# --- ALMACENAMIENTO PERSISTENTE DE SESIONES PARA LOGIN EXE ---
+# Usamos la tabla 'config' de Supabase como un KV store temporal para que funcione en Vercel (stateless)
 @app.route("/api/auth/session/create", methods=["GET"])
 def create_auth_session():
     session_id = str(uuid.uuid4())
-    auth_sessions[session_id] = {"token": None, "expires": datetime.now() + timedelta(minutes=5)}
+    # No guardamos nada aún, el ID es aleatorio
     return jsonify({"session_id": session_id})
 
 @app.route("/api/auth/session/set", methods=["GET"])
 def set_auth_session():
     session_id = request.args.get("session_id")
     token = request.args.get("token")
-    if session_id in auth_sessions:
-        auth_sessions[session_id]["token"] = token
+    if not session_id or not token:
+        return jsonify({"error": "Missing params"}), 400
+    
+    # Guardar en Supabase (tabla config) para que sea compartido entre instancias
+    try:
+        _cfg_upsert(f"sid_{session_id}", token)
         return jsonify({"status": "ok"})
-    return jsonify({"error": "Sesion no encontrada o expirada"}), 404
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 @app.route("/api/auth/session/poll", methods=["GET"])
 def poll_auth_session():
     session_id = request.args.get("session_id")
-    if session_id in auth_sessions:
-        session = auth_sessions[session_id]
-        if session["token"]:
-            token = session["token"]
-            # Consumir y limpiar
-            del auth_sessions[session_id]
+    if not session_id:
+        return jsonify({"token": None, "error": "missing_sid"})
+    
+    try:
+        # Buscar en Supabase
+        token = _cfg_get(f"sid_{session_id}")
+        if token:
+            # Una vez consumido, podríamos borrarlo, pero por ahora lo dejamos expirar o lo sobreescribimos
+            # (Opcional: implementar borrado real)
             return jsonify({"token": token})
         return jsonify({"token": None})
-    return jsonify({"token": None, "error": "expired"})
+    except Exception as e:
+        return jsonify({"token": None, "error": str(e)})
 
 if __name__ == "__main__":
     app.run(debug=True, port=5000)

@@ -551,30 +551,63 @@ class PapaMonitorApp:
                 self.window.evaluate_js("setLoginError('No se pudo obtener configuración desde el servidor. Revisa tu conexión.')")
 
     def _poll_for_session(self, sid, api_base):
-        max_attempts = 60 # 2 minutos
-        for _ in range(max_attempts):
-            if not self.running: break
-            try:
-                resp = requests.get(f"{api_base}/api/auth/session/poll?session_id={sid}", timeout=5).json()
-                token = resp.get("token")
-                if token:
-                    self.jwt_token = token
-                    self._save_session(token)
-                    self.log("¡Sesión vinculada exitosamente!", "SYS", "green")
-                    if self.window:
-                        self.window.load_url(resource_path("papamonitor/dashboard.html"))
-                    self.sync_state_to_ui()
-                    return
-                if resp.get("error") == "expired":
-                    self.log("La sesión de login expiró.", "ERR", "red")
-                    return
-            except Exception as e:
-                pass
-            time.sleep(2)
-        self.log("Tiempo de espera agotado.", "SYS", "neutral")
+        max_attempts = 60 # 2 minutos (un intento cada 2 segundos)
+        self.log(f"Iniciando sondeo de sesión {sid[:8]}...", "SYS", "blue")
+        
+        try:
+            for i in range(max_attempts):
+                if not self.running: break
+                
+                try:
+                    r = requests.get(f"{api_base}/api/auth/session/poll?session_id={sid}", timeout=5)
+                    if r.status_code == 200:
+                        resp = r.json()
+                        token = resp.get("token")
+                        if token:
+                            self.jwt_token = token
+                            self._save_session(token)
+                            self.log("¡Sesión vinculada!", "SYS", "green")
+                            if self.window:
+                                self.window.evaluate_js("setLoginLoading(false)")
+                            # Forzar recarga o sincronización para ocultar el overlay
+                            self.sync_state_to_ui()
+                            # Intentar curar perfil si es nuevo
+                            threading.Thread(target=self._heal_profile_silently, daemon=True).start()
+                            return
+                        
+                        if resp.get("error"):
+                            self.log(f"Error en sondeo: {resp.get('error')}", "ERR", "red")
+                            if self.window:
+                                self.window.evaluate_js(f"setLoginError('Error: {resp.get('error')}')")
+                            return
+                    else:
+                        # Silencioso a menos que sea error crítico
+                        pass
+                except Exception:
+                    pass
+                
+                time.sleep(2)
+            
+            self.log("El tiempo de espera para el login ha expirado.", "ERR", "red")
+            if self.window:
+                self.window.evaluate_js("setLoginError('Tiempo de espera agotado. Reintenta.')")
+                
+        finally:
+            # Asegurar que el spinner se quite si salimos por cualquier motivo (éxito o fallo)
+            if self.window and not self.jwt_token:
+                self.window.evaluate_js("setLoginLoading(false)")
+
+    def _heal_profile_silently(self):
+        if not self.jwt_token or not self.client_cfg: return
+        try:
+            api_base = self.client_cfg.get("api_base")
+            if api_base:
+                url = f"{api_base}/api/heal-profile"
+                requests.post(url, headers={"Authorization": f"Bearer {self.jwt_token}"}, timeout=10)
+        except Exception:
+            pass
 
     def _start_local_callback_server(self, port):
-        # Eliminado en favor del polling más estable
         pass
 
     def accion_logout(self):

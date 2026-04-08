@@ -225,6 +225,102 @@ def heal_profile():
         return jsonify({"error": str(e)}), 500
 
 
+@app.route("/api/friends/profile", methods=["GET"])
+def friends_profile():
+    err = require_supabase()
+    if err: return err
+    auth_header = request.headers.get("Authorization", "")
+    if not auth_header.startswith("Bearer "): return jsonify({"error": "No auth token"}), 401
+    jwt_token = auth_header.split(" ")[1]
+    try:
+        user_res = sb_auth.auth.get_user(jwt_token)
+        if not user_res or not user_res.user: raise Exception("Invalido")
+        user_id = user_res.user.id
+    except: return jsonify({"error": "Invalid auth token"}), 401
+
+    prof = sb_admin.table("users_profiles").select("display_name,friend_code").eq("id", user_id).execute()
+    if sys_prof := prof.data:
+        return jsonify(sys_prof[0])
+    return jsonify({"error": "not found"})
+
+
+@app.route("/api/friends/list", methods=["GET"])
+def friends_list():
+    err = require_supabase()
+    if err: return err
+    auth_header = request.headers.get("Authorization", "")
+    if not auth_header.startswith("Bearer "): return jsonify({"error": "No auth token"}), 401
+    jwt_token = auth_header.split(" ")[1]
+    try:
+        user_res = sb_auth.auth.get_user(jwt_token)
+        if not user_res or not user_res.user: raise Exception("Invalido")
+        user_id = user_res.user.id
+    except: return jsonify({"error": "Invalid auth token"}), 401
+
+    relations = sb_admin.table("friends").select("*, requester:users_profiles!user_id(display_name,friend_code), target:users_profiles!friend_id(display_name,friend_code)").or_(f"user_id.eq.{user_id},friend_id.eq.{user_id}").execute()
+    
+    amigos = []
+    pendientes = []
+    for r in relations.data:
+        is_requester = str(r.get("user_id")) == str(user_id)
+        other_prof = r.get("target") if is_requester else r.get("requester")
+        if r.get("status") == "accepted":
+            amigos.append({"id": r.get("id"), "friend": other_prof})
+        elif r.get("status") == "pending" and not is_requester:
+            pendientes.append({"id": r.get("id"), "requester": other_prof})
+            
+    return jsonify({"friends": amigos, "requests": pendientes})
+    
+
+@app.route("/api/friends/add", methods=["POST"])
+def friends_add():
+    err = require_supabase()
+    if err: return err
+    auth_header = request.headers.get("Authorization", "")
+    if not auth_header.startswith("Bearer "): return jsonify({"error": "No auth"}), 401
+    jwt_token = auth_header.split(" ")[1]
+    try:
+        user_res = sb_auth.auth.get_user(jwt_token)
+        if not user_res or not user_res.user: raise Exception("Invalido")
+        user_id = user_res.user.id
+    except: return jsonify({"error": "Invalid auth"}), 401
+
+    code = (request.json or {}).get("code")
+    if not code: return jsonify({"error": "Code required"}), 400
+    
+    target = sb_admin.table("users_profiles").select("id").eq("friend_code", code).execute()
+    if not target.data: return jsonify({"error": "Código no encontrado"}), 404
+    
+    target_id = target.data[0]["id"]
+    if target_id == user_id: return jsonify({"error": "No puedes agregarte a ti mismo"}), 400
+    
+    existing = sb_admin.table("friends").select("*").or_(f"and(user_id.eq.{user_id},friend_id.eq.{target_id}),and(user_id.eq.{target_id},friend_id.eq.{user_id})").execute()
+    if existing.data: return jsonify({"error": "Ya son amigos o hay petición en curso"}), 400
+    
+    sb_admin.table("friends").insert({"user_id": user_id, "friend_id": target_id, "status": "pending"}).execute()
+    return jsonify({"status": "ok"})
+
+
+@app.route("/api/friends/accept", methods=["POST"])
+def friends_accept():
+    err = require_supabase()
+    if err: return err
+    auth_header = request.headers.get("Authorization", "")
+    if not auth_header.startswith("Bearer "): return jsonify({"error": "No auth"}), 401
+    jwt_token = auth_header.split(" ")[1]
+    try:
+        user_res = sb_auth.auth.get_user(jwt_token)
+        if not user_res or not user_res.user: raise Exception("Invalido")
+        user_id = user_res.user.id
+    except: return jsonify({"error": "Invalid auth"}), 401
+
+    req_id = (request.json or {}).get("request_id")
+    if not req_id: return jsonify({"error": "Request ID required"}), 400
+    
+    sb_admin.table("friends").update({"status": "accepted"}).eq("id", req_id).eq("friend_id", user_id).execute()
+    return jsonify({"status": "ok"})
+
+
 @app.route("/api/status", methods=["GET", "POST"])
 def handle_status():
     err = require_supabase()

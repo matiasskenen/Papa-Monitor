@@ -248,6 +248,13 @@ class PapaMonitorApp:
         if self.window:
             self.window.hide()
 
+    def get_api_context(self):
+        """Devuelve token y url base para que JS pueda consumir la API limpia"""
+        return {
+            "api_base": self.client_cfg.get("api_base", "https://papa-monitor.vercel.app").rstrip("/"),
+            "token": self.jwt_token
+        }
+
     def _on_window_closing(self) -> bool:
         """Intercepta el evento de cierre: oculta la ventana en lugar de cerrarla."""
         self.ocultar_panel()

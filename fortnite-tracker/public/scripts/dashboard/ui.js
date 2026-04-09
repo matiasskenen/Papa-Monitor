@@ -1,46 +1,41 @@
 /* ===== ui.js – Gestión de Interfaz ===== */
-function updateClocks() {
-  const opt = { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false };
-  try {
-    const esClock = document.getElementById("clock-es");
-    if (esClock) esClock.textContent = new Intl.DateTimeFormat("es-ES", { ...opt, timeZone: "Europe/Madrid" }).format(new Date());
-  } catch (e) {}
-}
 
-function showSection(id, btn) {
-  document.querySelectorAll(".content-section").forEach((s) => s.classList.remove("active"));
-  document.querySelectorAll(".nav-btn").forEach((b) => {
-    b.classList.remove("sidebar-item-active", "text-white");
-    b.classList.add("text-slate-400");
-    const svg = b.querySelector("svg");
-    if (svg) svg.classList.remove("text-indigo-400");
+function showSection(sectionId, btnEl) {
+  // 1. Ocultar todas las secciones
+  document.querySelectorAll(".content-section").forEach((sec) => {
+    sec.classList.remove("active");
   });
 
-  const target = document.getElementById(id);
+  // 2. Mostrar la sección seleccionada
+  const target = document.getElementById(sectionId);
   if (target) target.classList.add("active");
 
-  btn.classList.add("sidebar-item-active", "text-white");
-  btn.classList.remove("text-slate-400");
-  const svg = btn.querySelector("svg");
-  if (svg) svg.classList.add("text-indigo-400");
+  // 3. Actualizar estilo de los botones del sidebar
+  document.querySelectorAll(".nav-btn").forEach((btn) => {
+    btn.classList.remove("sidebar-item-active", "text-white");
+    btn.classList.add("text-slate-400");
+  });
 
-  if (id === "graficos") loadGraficos();
-  if (id === "amigos") loadFriendsData();
-  window.scrollTo(0, 0);
+  if (btnEl) {
+    btnEl.classList.add("sidebar-item-active", "text-white");
+    btnEl.classList.remove("text-slate-400");
+  }
+
+  // 4. Cargar datos específicos de la sección
+  if (sectionId === "amigos") {
+    if (typeof loadFriendsData === "function") loadFriendsData();
+  }
 }
 
-function fmt(iso, opts) {
-  if (!iso) return "—";
-  const d = new Date(iso);
-  return isNaN(d.getTime()) ? "—" : new Intl.DateTimeFormat("es-ES", opts).format(d);
+// Formateadores de utilidad
+function fmt(dateStr) {
+  return new Date(dateStr).toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" });
 }
 
-function getDur(start, end, active) {
-  const a = new Date(start);
-  const b = active ? new Date() : end ? new Date(end) : null;
-  if (!b || isNaN(a.getTime())) return "—";
-  const mins = Math.max(0, Math.floor((b - a) / 60000));
-  const h = Math.floor(mins / 60);
-  const m = mins % 60;
-  return (h > 0 ? h + "h " : "") + m + "m";
+function getDur(start, end, isActive) {
+  const s = new Date(start);
+  const e = isActive ? new Date() : new Date(end);
+  const diffMs = e - s;
+  const mins = Math.floor(diffMs / 60000);
+  return mins >= 60 ? `${Math.floor(mins / 60)}h ${mins % 60}m` : `${mins} min`;
 }

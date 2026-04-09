@@ -3,8 +3,8 @@ let API_BASE = "";
 let SUPABASE_URL = "";
 let SUPABASE_ANON_KEY = "";
 let sbClient = null;
-let sessionUser = null;
-let userProfile = null;
+let sessionUser = null; // Datos de Auth
+let userProfile = null; // Datos de la tabla profiles
 let pinnedFriendId = null;
 
 async function initApp() {
@@ -13,17 +13,6 @@ async function initApp() {
 
   try {
     const res = await fetch("/api/public-config");
-    if (!res.ok) {
-      const body = await res.text();
-      throw new Error(`/api/public-config devolvió ${res.status}: ${body.slice(0, 180)}`);
-    }
-
-    const contentType = res.headers.get("content-type") || "";
-    if (!contentType.includes("application/json")) {
-      const body = await res.text();
-      throw new Error(`Respuesta no JSON en /api/public-config: ${body.slice(0, 180)}`);
-    }
-
     const data = await res.json();
 
     API_BASE = data.api_base || "";
@@ -32,13 +21,31 @@ async function initApp() {
 
     if (window.supabase) {
       sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-      checkAuth();
-    } else {
-      console.error("Supabase SDK no cargado.");
+      // checkAuth está en auth.js
+      if (typeof checkAuth === "function") checkAuth();
     }
   } catch (err) {
-    console.error("Error al iniciar:", err);
+    console.error("Error al iniciar aplicación:", err);
   }
+}
+
+function updateInicioView() {
+  const emptyState = document.getElementById("empty-state-card");
+  const monitorContent = document.getElementById("monitor-content");
+
+  if (pinnedFriendId) {
+    emptyState?.classList.add("hidden");
+    monitorContent?.classList.remove("hidden");
+    loadAppStatusData(); // Definida en friends.js
+  } else {
+    emptyState?.classList.remove("hidden");
+    monitorContent?.classList.add("hidden");
+  }
+}
+
+function updateClocks() {
+  const clock = document.getElementById("clock-es");
+  if (clock) clock.innerText = new Date().toLocaleTimeString("es-ES");
 }
 
 window.addEventListener("DOMContentLoaded", initApp);

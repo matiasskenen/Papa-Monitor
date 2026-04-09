@@ -1,42 +1,44 @@
-/* ===== auth.js – Gestión de Usuarios ===== */
+/* ===== auth.js – Gestión de Autenticación ===== */
+
 async function checkAuth() {
   const {
     data: { session },
   } = await sbClient.auth.getSession();
-
-  sbClient.auth.onAuthStateChange(async (event, currentSession) => {
-    if (currentSession) {
-      handleLoginSuccess(currentSession.user);
-    } else {
-      handleLogoutState();
-    }
-  });
-
   if (session) {
     handleLoginSuccess(session.user);
   } else {
-    handleLogoutState();
+    document.getElementById("login-view").classList.remove("hidden");
+    document.getElementById("app-view").classList.add("hidden");
   }
 }
 
 async function handleLoginSuccess(user) {
   sessionUser = user;
+
+  // UI Update
   document.getElementById("login-view").classList.add("hidden");
   document.getElementById("app-view").classList.remove("hidden");
 
+  const avatarImg = document.getElementById("user-avatar");
+  if (user.user_metadata.avatar_url) {
+    avatarImg.src = user.user_metadata.avatar_url;
+    avatarImg.classList.remove("hidden");
+    document.getElementById("user-avatar-fallback").classList.add("hidden");
+  }
+
+  // Cargar perfil del usuario (esta función está en friends.js)
   await loadMyProfile();
-  loadAppStatusData();
-  setInterval(loadAppStatusData, 15000);
 }
 
-function handleLogoutState() {
-  document.getElementById("login-view").classList.remove("hidden");
-  document.getElementById("app-view").classList.add("hidden");
+async function logout() {
+  await sbClient.auth.signOut();
+  location.reload();
 }
 
-document.getElementById("btn-login-google").addEventListener("click", async () => {
+// Evento para el botón de Google
+document.getElementById("btn-login-google")?.addEventListener("click", async () => {
   await sbClient.auth.signInWithOAuth({
     provider: "google",
-    options: { redirectTo: window.location.origin + "/dashboard" },
+    options: { redirectTo: window.location.origin },
   });
 });

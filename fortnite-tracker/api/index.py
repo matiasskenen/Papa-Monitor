@@ -15,7 +15,12 @@ import resend
 from flask import Flask, jsonify, request
 from supabase import Client, create_client
 from zoneinfo import ZoneInfo
-from core.time_utils import parse_dt, session_minutes_by_calendar_day, utc_now_iso
+try:
+    # Cuando corre como paquete (p.ej. en local/tests)
+    from api.core.time_utils import parse_dt, session_minutes_by_calendar_day, utc_now_iso
+except Exception:
+    # Cuando Vercel ejecuta directamente api/index.py
+    from core.time_utils import parse_dt, session_minutes_by_calendar_day, utc_now_iso
 
 app = Flask(__name__)
 

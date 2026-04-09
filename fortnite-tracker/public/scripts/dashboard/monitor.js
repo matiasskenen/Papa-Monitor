@@ -13,6 +13,17 @@ async function initApp() {
 
   try {
     const res = await fetch("/api/public-config");
+    if (!res.ok) {
+      const body = await res.text();
+      throw new Error(`/api/public-config devolvió ${res.status}: ${body.slice(0, 180)}`);
+    }
+
+    const contentType = res.headers.get("content-type") || "";
+    if (!contentType.includes("application/json")) {
+      const body = await res.text();
+      throw new Error(`Respuesta no JSON en /api/public-config: ${body.slice(0, 180)}`);
+    }
+
     const data = await res.json();
 
     API_BASE = data.api_base || "";

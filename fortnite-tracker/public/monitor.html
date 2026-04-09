@@ -4,24 +4,23 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Papa Monitor - Dashboard</title>
-    <!-- CSS -->
-    <link rel="stylesheet" href="/monitor.css">
-    <!-- Tailwind & Fonts -->
+    
+    <link rel="stylesheet" href="./css/monitor.css">
+    
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
-    <!-- Chart.js -->
+    
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-    <!-- Supabase JS -->
+    
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body class="flex flex-col sm:flex-row h-screen overflow-hidden bg-slate-950 text-white font-inter">
 
-    <!-- LOGIN OVERLAY -->
     <div id="login-view" class="fixed inset-0 z-[100] bg-slate-950 flex flex-col items-center justify-center p-6 hidden">
         <div class="glass p-10 sm:p-14 max-w-md w-full text-center space-y-8 rounded-[2rem] shadow-2xl shadow-indigo-900/20">
             <div class="space-y-2">
                 <h1 class="text-4xl font-black tracking-tighter text-indigo-400">PAPA <span class="text-white">MONITOR</span></h1>
-                <p class="text-slate-400 text-sm">Inicia sesión para comenzar a monitorear la actividad de tus amigos en tiempo real.</p>
+                <p class="text-slate-400 text-sm">Inicia sesión para monitorear la actividad de tus amigos en tiempo real.</p>
             </div>
             <button id="btn-login-google" class="w-full flex items-center justify-center gap-3 px-6 py-4 bg-white hover:bg-slate-50 text-slate-900 font-bold rounded-2xl transition-all shadow-md">
                 <svg viewBox="0 0 24 24" class="w-5 h-5" width="24" height="24">
@@ -36,17 +35,14 @@
         </div>
     </div>
 
-    <!-- MAIN APP AREA (Hidden initially while checking auth) -->
     <div id="app-view" class="w-full h-full flex flex-col sm:flex-row hidden">
 
-        <!-- Sidebar / Bottom Bar (Responsive) -->
         <aside id="sidebar" class="order-2 sm:order-1 fixed bottom-0 left-0 right-0 w-full h-[75px] bg-slate-900/90 backdrop-blur-xl border-t border-white/5 z-50 flex sm:relative sm:top-0 sm:h-screen sm:w-64 sm:flex-col sm:border-t-0 sm:border-r sm:bg-black/20 shrink-0">
             <div class="hidden sm:block p-8">
                 <h1 class="text-2xl font-black tracking-tighter text-indigo-400">PAPA <span class="text-white">MONITOR</span></h1>
             </div>
             
             <nav class="flex-1 flex flex-row sm:flex-col items-center sm:items-stretch justify-around sm:justify-start px-2 sm:px-4 sm:space-y-2 sm:mt-4 h-full relative">
-                
                 <button onclick="showSection('inicio', this)" class="nav-btn sidebar-item-active flex flex-col sm:flex-row items-center gap-1 sm:gap-4 px-2 sm:px-4 py-2 sm:py-3 rounded-xl transition-all hover:bg-white/5 text-left grow sm:grow-0 text-white">
                     <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
@@ -76,16 +72,12 @@
             </nav>
         </aside>
 
-        <!-- Main Content -->
         <main class="order-1 sm:order-2 flex-1 h-screen overflow-y-auto scrollbar-hide w-full pb-[80px] sm:pb-0">
-            <!-- Top Bar -->
             <header class="flex items-center justify-between px-6 sm:px-10 py-6">
                 <div class="flex items-center gap-4 sm:gap-8">
-                    <!-- Mobile Logo -->
                     <div class="sm:hidden flex items-center gap-4">
                         <h1 class="text-xl font-black tracking-tighter text-indigo-400">PAPA <span class="text-white">MONITOR</span></h1>
                     </div>
-
                     <div class="hidden sm:flex flex-col">
                         <span class="text-[10px] uppercase tracking-widest text-slate-500 font-bold">España (MAD)</span>
                         <span id="clock-es" class="text-xl font-mono text-indigo-400 tracking-wider">00:00:00</span>
@@ -100,159 +92,50 @@
                 </div>
             </header>
 
-            <!-- SECCIÓN: INICIO -->
             <section id="inicio" class="content-section active px-6 sm:px-10 pb-10 space-y-8">
-                
-                <!-- Vista: No hay amigo fijado -->
                 <div id="empty-state-card" class="glass rounded-[2rem] p-8 sm:p-12 flex flex-col items-center justify-center text-center space-y-4">
                     <div class="w-16 h-16 rounded-full bg-indigo-500/10 text-indigo-400 flex items-center justify-center mb-2">
-                        <svg class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-                        </svg>
+                        <svg class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
                     </div>
                     <h3 class="text-2xl font-bold text-white tracking-tight">Selecciona a un amigo</h3>
-                    <p class="text-slate-400 max-w-md mx-auto">Para monitorear en tiempo real, primero debes ir a la pestaña de Amigos y fijar a uno de tus contactos.</p>
-                    <button onclick="showSection('amigos', document.querySelectorAll('.nav-btn')[1])" class="mt-4 px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl transition-colors">
-                        Ir a Amigos
-                    </button>
+                    <p class="text-slate-400 max-w-md mx-auto">Primero debes ir a Amigos y fijar a uno para monitorearlo.</p>
+                    <button onclick="showSection('amigos', document.querySelectorAll('.nav-btn')[1])" class="mt-4 px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl transition-colors">Ir a Amigos</button>
                 </div>
 
-                <!-- Vista: Amigo fijado (Monitor) -->
                 <div id="monitor-content" class="hidden space-y-8">
                     <div class="flex items-center gap-4 bg-white/5 border border-white/5 rounded-2xl p-4 w-fit">
                         <span class="text-xs text-slate-400 uppercase font-bold tracking-widest">Monitoreando a:</span>
                         <span id="pinned-friend-name" class="font-bold text-indigo-300">Nadie</span>
                     </div>
-
-                    <!-- Status Highlight -->
                     <div id="status-card" class="status-card-bg rounded-[2rem] p-8 sm:p-12 flex flex-col items-center justify-center text-center relative overflow-hidden">
-                        <!-- Abstract Glow -->
                         <div id="status-glow" class="absolute -top-24 -left-24 w-64 h-64 bg-rose-500/20 blur-[100px] rounded-full transition-colors duration-1000"></div>
-                        
                         <div class="relative z-10">
                             <h2 id="status-text" class="text-5xl sm:text-7xl font-black mb-4 tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-white to-white/40">OFFLINE</h2>
                             <p id="play-time" class="text-slate-400 text-lg max-w-md mx-auto">Estado actual</p>
                         </div>
                     </div>
-
-                    <!-- Recent Sessions -->
                     <div class="space-y-6">
                         <h3 class="text-xl font-bold tracking-tight">Últimas Sesiones</h3>
-                        <div id="last-sessions-list" class="grid gap-4">
-                            <!-- Dinámico -->
-                        </div>
+                        <div id="last-sessions-list" class="grid gap-4"></div>
                     </div>
                 </div>
             </section>
 
-            <!-- SECCIÓN: AMIGOS -->
             <section id="amigos" class="content-section px-6 sm:px-10 pb-10 space-y-8">
-                <div class="flex flex-col">
-                    <h2 class="text-3xl font-black tracking-tighter">AMIGOS</h2>
-                    <p class="text-slate-400">Administra tus conexiones y decide a quién monitorear.</p>
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <!-- Columna Izquierda: Mi ID y Añadir Amigo -->
-                    <div class="space-y-8">
-                        <div class="glass p-6 rounded-2xl flex items-center justify-between">
-                            <div>
-                                <span class="text-xs uppercase font-bold tracking-widest text-slate-500">Mi ID de Amigo</span>
-                                <h3 id="my-friend-code" class="text-3xl font-mono font-black text-indigo-400 tracking-widest mt-1">------</h3>
-                                <p class="text-xs text-slate-400 mt-2">Comparte este ID con otros usuarios para que te agreguen.</p>
-                            </div>
-                            <button onclick="copyMyID()" class="p-3 bg-white/5 hover:bg-white/10 rounded-xl transition-colors">
-                                <svg class="w-6 h-6 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                                </svg>
-                            </button>
-                        </div>
-
-                        <div class="glass p-6 rounded-2xl space-y-4">
-                            <h3 class="font-bold text-lg">Añadir Amigo</h3>
-                            <div class="flex flex-col gap-3">
-                                <input type="text" id="friend-search-input" placeholder="Ingresa un ID (ej: 123456)" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 focus:outline-none focus:border-indigo-500 transition-colors placeholder:text-slate-600 font-mono">
-                                <button onclick="sendFriendRequest()" class="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl transition-colors">Enviar Solicitud</button>
-                            </div>
-                            <p id="add-friend-msg" class="text-sm font-medium h-4 text-emerald-400 text-center"></p>
-                        </div>
-
-                        <div class="glass p-6 rounded-2xl space-y-4">
-                            <h3 class="font-bold text-lg">Mi Perfil (Nombre visible)</h3>
-                            <div class="flex flex-col gap-3">
-                                <input type="text" id="my-display-name" placeholder="Tu nombre en el juego" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 focus:outline-none focus:border-indigo-500 transition-colors">
-                                <button onclick="updateProfile()" class="w-full py-3 bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white font-bold rounded-xl transition-colors">Guardar Cambios</button>
-                            </div>
-                        </div>
-
-                        <!-- Nueva Sección: Enlace con App de Escritorio -->
-                        <div class="glass p-6 rounded-2xl space-y-4 border border-blue-500/30 bg-blue-900/10">
-                            <div>
-                                <h3 class="font-bold text-lg text-blue-400">Token de Vinculación Seguro</h3>
-                                <p class="text-xs text-slate-400 mt-1">Usa este token para conectar la aplicación Monitor de escritorio a tu cuenta.</p>
-                            </div>
-                            <button onclick="copyTrackerToken()" class="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl transition-colors flex justify-center items-center gap-2">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                  <path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z" />
-                                  <path d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z" />
-                                </svg>
-                                <span id="copy-token-text">Copiar Token Seguro</span>
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Columna Derecha: Lista de Amigos -->
-                    <div class="space-y-6">
-                        <!-- Solicitudes Recibidas (si hay) -->
-                        <div id="pending-requests-container" class="space-y-3 hidden">
-                            <h3 class="font-bold text-lg text-rose-400">Solicitudes Pendientes</h3>
-                            <div id="pending-friends-list" class="space-y-3"></div>
-                        </div>
-
-                        <div class="glass p-6 rounded-2xl h-full min-h-[400px]">
-                            <h3 class="font-bold text-lg mb-4">Mis Amigos</h3>
-                            <p class="text-xs text-slate-400 mb-6">Fija a un amigo usando el botón de pin para comenzar a monitorearlo y recibir notificaciones.</p>
-                            
-                            <div id="friends-list" class="space-y-3">
-                                <div class="text-center py-10 text-slate-500">Cargando amigos...</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                <div class="flex flex-col"><h2 class="text-3xl font-black tracking-tighter">AMIGOS</h2></div>
+                <div id="friends-list" class="space-y-3"></div>
             </section>
 
-            <!-- SECCIÓN: GRÁFICOS / ESTADISTICAS -->
             <section id="graficos" class="content-section px-6 sm:px-10 pb-10 space-y-8">
-                <div class="flex flex-col">
-                    <h2 class="text-3xl font-black tracking-tighter">ESTADÍSTICAS</h2>
-                    <p class="text-slate-400">Datos históricos del amigo fijado.</p>
-                </div>
-                
-                <div class="glass p-8">
-                    <div class="chart-container h-[300px]">
-                        <canvas id="playtimeChart"></canvas>
-                    </div>
-                </div>
-
-                <div class="table-wrapper glass p-6">
-                    <table id="sessions-table" class="w-full text-left border-collapse">
-                        <thead>
-                            <tr class="text-slate-500 text-xs uppercase tracking-widest border-b border-white/10">
-                                <th class="py-3 font-bold">Inicio</th>
-                                <th class="py-3 font-bold">Fin</th>
-                                <th class="py-3 font-bold">Duración</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <!-- Dinámico -->
-                        </tbody>
-                    </table>
-                </div>
+                <div class="flex flex-col"><h2 class="text-3xl font-black tracking-tighter">ESTADÍSTICAS</h2></div>
+                <div class="glass p-8"><canvas id="playtimeChart"></canvas></div>
             </section>
         </main>
     </div>
 
-    <!-- Cargar archivo JS -->
-    <script src="/monitor.js?v=2.5"></script>
+    <script src="./js/ui.js"></script>
+    <script src="./js/auth.js"></script>
+    <script src="./js/friends.js"></script>
+    <script src="./js/monitor.js"></script>
 </body>
 </html>

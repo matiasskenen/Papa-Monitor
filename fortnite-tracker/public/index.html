@@ -4,53 +4,26 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PapaMonitor - Squad Ready</title>
-  <script>
-    // Puente de AutenticaciÃ³n v2 (Polling/Backend)
-    const urlParams = new URLSearchParams(window.location.search);
-    const sid = urlParams.get('auth_sid');
-    const hash = window.location.hash.substring(1);
-    const hashParams = new URLSearchParams(hash);
-    const token = hashParams.get('access_token');
-
-    if (sid && token) {
-      // Registrar token en la salita de espera del servidor
-      fetch('/api/auth/session/set?session_id=' + sid + '&token=' + token)
-        .then(() => {
-          console.log('Token registrado en servidor para sesion:', sid);
-          // Limpiar URL para el usuario
-          window.location.hash = '';
-          history.replaceState(null, "", window.location.pathname);
-        });
-    }
-    
-    // Fallback puerto local (v1)
-    if (token && !sid) {
-      fetch('http://localhost:5555/save-token?' + hash, { mode: 'no-cors' }).catch(() => {});
-    }
-  </script>
     <meta name="description" content="PapaMonitor: alertas de mail instantáneas cuando papá entra al lobby de Fortnite.">
+    
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@700;900&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/index.css">
+    
+    <link rel="stylesheet" href="./css/index.css">
 </head>
 <body>
 
-    <!-- BARRA DE NAVEGACIÓN SUPERIOR -->
     <nav class="top-nav">
         <a href="/" class="brand">PapaMonitor</a>
         <div class="nav-links">
-            <a href="/" class="nav-link active" id="nav-inicio">Inicio</a>
-            <a href="/dashboard" class="nav-link" id="nav-dashboard">Dashboard</a>
-            <a href="mailto:matias.skenen@gmail.com" class="nav-link" id="nav-contacto">Contacto</a>
+            <a href="/" class="nav-link active">Inicio</a>
+            <a href="/dashboard" class="nav-link">Dashboard</a>
+            <a href="mailto:matias.skenen@gmail.com" class="nav-link">Contacto</a>
         </div>
     </nav>
 
-
-
     <main class="container">
-
-        <!-- HERO -->
         <section class="hero">
             <div class="victory-banner">
                 <h2 class="victory-text">Victory Royale</h2>
@@ -59,10 +32,9 @@
             <p>Alertas de mail instantáneas al entrar al lobby</p>
             <br>
             <a href="/monitor.exe" download class="btn-main">¡Descargar Ahora!</a>
-            <div id="version-tag" style="display:block;margin-top:20px;font-family:'Bebas Neue';color:var(--fn-blue)">Season Alpha: v1.0.0</div>
+            <div id="version-tag">Season Alpha: v2.5.0</div>
         </section>
 
-        <!-- FEATURE CARDS -->
         <section class="features">
             <div class="card rare">
                 <span class="category">Objeto Raro</span>
@@ -81,27 +53,25 @@
             </div>
         </section>
 
-        <!-- CÓMO FUNCIONA -->
         <section class="how">
-            <h2>Instalacion</h2>
+            <h2>Instalación</h2>
             <div class="steps">
-                <div class="step-item"><div class="step-num">01</div><p style="font-family:'Bebas Neue'">Descarga la App</p></div>
-                <div class="step-item"><div class="step-num">02</div><p style="font-family:'Bebas Neue'">Instalar</p></div>
-                <div class="step-item"><div class="step-num">03</div><p style="font-family:'Bebas Neue'">Minimizar</p></div>
+                <div class="step-item"><div class="step-num">01</div><p>Descarga la App</p></div>
+                <div class="step-item"><div class="step-num">02</div><p>Instalar</p></div>
+                <div class="step-item"><div class="step-num">03</div><p>Minimizar</p></div>
             </div>
         </section>
-
     </main>
 
     <footer>
         <p>© 2026 PapaMonitor | Battle Royale Edition</p>
         <p>
-            <a href="/dashboard" style="color:#444;text-decoration:none">Dashboard</a>
+            <a href="/dashboard">Dashboard</a>
             &nbsp;·&nbsp;
-            <a href="/admin" style="color:#444;text-decoration:none">Admin</a>
+            <a href="/admin">Admin</a>
         </p>
     </footer>
 
-    <script src="/index.js"></script>
+    <script src="./js/auth-bridge.js"></script> <script src="./js/index.js"></script>
 </body>
 </html>

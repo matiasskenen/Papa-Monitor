@@ -4,47 +4,68 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PapaMonitor — Admin</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/admin.css">
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="./css/admin.css">
 </head>
 <body>
     <div class="card">
         <h1>Configuración del servidor</h1>
-        <p class="note">Panel de adsministración de PapaMonitor. Acceso público.</p>
+        <p class="note">Panel de administración de PapaMonitor. Acceso público.</p>
 
         <div class="row">
             <button type="button" id="btn-load">Cargar valores</button>
             <button type="button" class="secondary" id="btn-save">Guardar cambios</button>
         </div>
-        <hr style="border-color: var(--border); margin: 24px 0;">
+
+        <hr style="border-color: rgba(255,255,255,0.1); margin: 24px 0;">
+
         <div class="row">
-            <label><input type="checkbox" id="emails_enabled"> Emails de alerta activados</label>
+            <label class="checkbox-container">
+                <input type="checkbox" id="emails_enabled"> 
+                <span>Emails de alerta activados</span>
+            </label>
         </div>
+
         <div class="row">
             <label for="alert_email">Email de destino (alertas)</label>
-            <input type="text" id="alert_email" placeholder="correo@ejemplo.com">
+            <input type="email" id="alert_email" placeholder="correo@ejemplo.com">
         </div>
+
         <div class="row">
             <label for="resend_from">Remitente Resend</label>
             <input type="text" id="resend_from" placeholder="onboarding@resend.dev">
         </div>
+
         <div class="row">
             <label for="poll_interval_seconds">Intervalo de sondeo cliente (segundos, 10–300)</label>
-            <input type="text" id="poll_interval_seconds" placeholder="20">
+            <input type="number" id="poll_interval_seconds" placeholder="20">
         </div>
+
         <div class="row">
             <label for="process_substrings">Procesos a detectar (JSON array o coma-separado)</label>
             <textarea id="process_substrings" placeholder='["FortniteClient-Win64-Shipping"]'></textarea>
         </div>
+
         <div id="feedback" class="msg"></div>
-        <hr style="border-color: var(--border); margin: 24px 0;">
-        <h2 style="font-size:1.1rem; margin: 0 0 8px;">Herramientas de prueba</h2>
+
+        <hr style="border-color: rgba(255,255,255,0.1); margin: 24px 0;">
+
+        <h2 style="font-size:1.1rem; margin: 0 0 12px; font-weight: 700;">Herramientas de prueba</h2>
         <div class="row" style="display:flex; gap: 8px; flex-wrap: wrap;">
-            <button type="button" id="btn-test-email">Enviar email de prueba</button>
+            <button type="button" id="btn-test-email" class="test-btn">Enviar email de prueba</button>
         </div>
+        
         <div id="test-feedback" class="msg"></div>
-        <p class="note" style="margin-top:24px;"><a href="/">Volver al inicio</a> · <a href="/dashboard">Dashboard</a></p>
+
+        <p class="note" style="margin-top:24px;">
+            <a href="/">Volver al inicio</a> · <a href="/dashboard">Dashboard</a>
+        </p>
     </div>
-    <script src="/admin.js"></script>
+
+    <script src="./js/admin.js"></script>
 </body>
 </html>

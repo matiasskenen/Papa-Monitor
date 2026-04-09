@@ -12,7 +12,6 @@ async function initApp() {
   setInterval(updateClocks, 1000);
 
   try {
-    // Cargamos la config desde el endpoint del backend
     const res = await fetch("/api/public-config");
     const data = await res.json();
 
@@ -22,7 +21,6 @@ async function initApp() {
 
     if (window.supabase) {
       sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-      // Llamamos a la función que estará en auth.js
       checkAuth();
     } else {
       console.error("Supabase SDK no cargado.");

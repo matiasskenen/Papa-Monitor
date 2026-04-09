@@ -3,7 +3,6 @@
 const feedback = document.getElementById("feedback");
 const testFeedback = document.getElementById("test-feedback");
 
-// Helper para mostrar mensajes
 function showMsg(el, text, isError = false) {
   el.innerText = text;
   el.className = isError ? "msg error" : "msg success";
@@ -13,7 +12,6 @@ function showMsg(el, text, isError = false) {
   }, 3000);
 }
 
-// Cargar configuración desde el servidor
 async function loadConfig() {
   try {
     const res = await fetch("/api/admin/settings");
@@ -32,7 +30,6 @@ async function loadConfig() {
   }
 }
 
-// Guardar configuración
 async function saveConfig() {
   const config = {
     emails_enabled: document.getElementById("emails_enabled").checked,
@@ -56,7 +53,6 @@ async function saveConfig() {
   }
 }
 
-// Enviar Email de Prueba
 async function testEmail() {
   try {
     const res = await fetch("/api/test-email", { method: "POST" });
@@ -67,10 +63,7 @@ async function testEmail() {
   }
 }
 
-// Event Listeners
 document.getElementById("btn-load").addEventListener("click", loadConfig);
 document.getElementById("btn-save").addEventListener("click", saveConfig);
 document.getElementById("btn-test-email").addEventListener("click", testEmail);
-
-// Carga inicial
 document.addEventListener("DOMContentLoaded", loadConfig);

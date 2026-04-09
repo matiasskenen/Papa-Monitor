@@ -15,6 +15,7 @@ import requests
 import webview
 
 from papamonitor import constants
+from papamonitor.dev_ui_server import DevUiServer
 from papamonitor.fortnite_detect import is_fortnite_running
 from papamonitor.instance_lock import cerrar_lock
 from papamonitor.paths import resource_path
@@ -71,6 +72,9 @@ class Api:
 class PapaMonitorApp:
     def __init__(self) -> None:
         self.running = True
+        self.dev_ui_mode = "--dev-ui" in sys.argv and not getattr(sys, "frozen", False)
+        self._dev_server: DevUiServer | None = None
+        self._dev_ui_url: str | None = None
         self.is_online = False
         self.session_start_iso = None
         
@@ -92,10 +96,12 @@ class PapaMonitorApp:
         self.icon = iniciar_tray(self.img_logo, self.lanzar_panel, self.ocultar_panel, self.salir_total)
         self.api_instance = Api(self)
 
+        ui_entry = self._resolve_ui_entry()
+
         # Iniciar interface de forma segura
         self.window = webview.create_window(
             constants.APP_NAME,
-            resource_path("papamonitor/dashboard.html"),
+            ui_entry,
             width=940,
             height=700,
             js_api=self.api_instance,
@@ -105,6 +111,17 @@ class PapaMonitorApp:
         self.window.events.shown += self.on_window_shown
         self.window.events.loaded += self.on_url_loaded
         self.window.events.closing += self._on_window_closing
+
+    def _resolve_ui_entry(self) -> str:
+        if self.dev_ui_mode:
+            if self._dev_ui_url:
+                return self._dev_ui_url
+            ui_root = os.path.abspath(os.path.join(os.path.dirname(__file__)))
+            self._dev_server = DevUiServer(ui_root)
+            self._dev_ui_url = self._dev_server.start()
+            print(f"[dev-ui] UI local en {self._dev_ui_url}")
+            return self._dev_ui_url
+        return resource_path("papamonitor/dashboard.html")
 
     def _load_logo(self):
         from PIL import Image
@@ -304,6 +321,10 @@ class PapaMonitorApp:
 
     def salir_total(self) -> None:
         self.running = False
+        if self._dev_server:
+            self._dev_server.stop()
+            self._dev_server = None
+            self._dev_ui_url = None
         try:
             if getattr(self, "icon", None):
                 self.icon.stop()
@@ -622,5 +643,6 @@ class PapaMonitorApp:
         if os.path.exists(self.session_path):
             os.remove(self.session_path)
         self.log("Sesión cerrada.", "SYS", "neutral")
-        self.window.load_url(resource_path("papamonitor/dashboard.html"))
+        if self.window:
+            self.window.load_url(self._resolve_ui_entry())
 

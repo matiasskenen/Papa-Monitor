@@ -15,6 +15,7 @@ import resend
 from flask import Flask, jsonify, request
 from supabase import Client, create_client
 from zoneinfo import ZoneInfo
+from core.time_utils import parse_dt, session_minutes_by_calendar_day, utc_now_iso
 
 app = Flask(__name__)
 
@@ -40,10 +41,6 @@ if RESEND_API_KEY:
 
 # Destino fijo de alertas (por ahora siempre este correo)
 ALERT_EMAIL_TO = "matias.skenen@gmail.com"
-
-
-def utc_now_iso() -> str:
-    return datetime.now(timezone.utc).isoformat()
 
 
 def require_supabase():
@@ -115,37 +112,6 @@ def admin_auth(f):
     def wrapper(*args, **kwargs):
         return f(*args, **kwargs)
     return wrapper
-
-
-def _parse_dt(val) -> datetime | None:
-    if not val:
-        return None
-    if isinstance(val, datetime):
-        return val if val.tzinfo else val.replace(tzinfo=timezone.utc)
-    try:
-        s = str(val).replace("Z", "+00:00")
-        return datetime.fromisoformat(s)
-    except Exception:
-        return None
-
-
-def _session_minutes_by_calendar_day(start_utc: datetime, end_utc: datetime, tz: ZoneInfo) -> dict[str, float]:
-    out: dict[str, float] = defaultdict(float)
-    if end_utc <= start_utc:
-        return dict(out)
-    start_local = start_utc.astimezone(tz)
-    end_local = end_utc.astimezone(tz)
-    d = start_local.date()
-    end_date = end_local.date()
-    while d <= end_date:
-        day_start = datetime(d.year, d.month, d.day, 0, 0, 0, tzinfo=tz)
-        day_end = day_start + timedelta(days=1)
-        seg_start = max(start_local, day_start)
-        seg_end = min(end_local, day_end)
-        if seg_end > seg_start:
-            out[d.isoformat()] += (seg_end - seg_start).total_seconds() / 60.0
-        d = d + timedelta(days=1)
-    return dict(out)
 
 
 @app.route("/api/public-config", methods=["GET"])
@@ -468,14 +434,14 @@ def playtime_stats():
 
     by_day: dict[str, float] = defaultdict(float)
     for row in rows:
-        start = _parse_dt(row.get("start_time"))
+        start = parse_dt(row.get("start_time"))
         if not start:
             continue
         if row.get("is_active"):
             end = datetime.now(timezone.utc)
         else:
-            end = _parse_dt(row.get("end_time")) or datetime.now(timezone.utc)
-        for d, mins in _session_minutes_by_calendar_day(start, end, tz).items():
+            end = parse_dt(row.get("end_time")) or datetime.now(timezone.utc)
+        for d, mins in session_minutes_by_calendar_day(start, end, tz).items():
             by_day[d] += mins
 
     series = sorted(({"date": k, "minutes": round(v, 1)} for k, v in by_day.items()), key=lambda x: x["date"])

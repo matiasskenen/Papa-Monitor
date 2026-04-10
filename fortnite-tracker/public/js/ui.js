@@ -46,70 +46,45 @@ function getDur(start, end, active) {
   return (h > 0 ? h + "h " : "") + m + "m";
 }
 
-/* ===== Actualización Dinámica del Inicio corregida para tu HTML ===== */
 async function updateInicioView() {
-    const emptyState = document.getElementById("empty-state-card");
-    const monitorContent = document.getElementById("monitor-content");
-    const pinnedNameLabel = document.getElementById("pinned-friend-name");
-    const statusText = document.getElementById("status-text");
-    const statusGlow = document.getElementById("status-glow");
+  // 1. Referencias a los elementos de TU HTML
+  const emptyState = document.getElementById("empty-state-card");
+  const monitorContent = document.getElementById("monitor-content");
+  const pinnedNameLabel = document.getElementById("pinned-friend-name"); // ID correcto según tu HTML
+  const statusText = document.getElementById("status-text");
 
-    // Si no hay nadie fijado, mostramos el mensaje de "Selecciona un amigo"
-    if (!pinnedFriendId) {
-        if (emptyState) emptyState.classList.remove("hidden");
-        if (monitorContent) monitorContent.classList.add("hidden");
-        return;
+  console.log("Sincronizando Inicio con amigo ID:", pinnedFriendId);
+
+  if (!pinnedFriendId) {
+    if (emptyState) emptyState.classList.remove("hidden");
+    if (monitorContent) monitorContent.classList.add("hidden");
+    return;
+  }
+
+  // 2. Mostrar el panel de monitoreo
+  if (emptyState) emptyState.classList.add("hidden");
+  if (monitorContent) monitorContent.classList.remove("hidden");
+
+  try {
+    // 3. Traer el nombre del amigo de Supabase
+    const { data: friend, error } = await sbClient.from("users_profiles").select("username").eq("id", pinnedFriendId).maybeSingle();
+
+    if (friend && pinnedNameLabel) {
+      pinnedNameLabel.innerText = friend.username; // Aquí es donde "Nadie" cambia a "Matías..."
     }
 
-    // Si hay alguien, mostramos el dashboard de monitoreo
-    if (emptyState) emptyState.classList.add("hidden");
-    if (monitorContent) monitorContent.classList.remove("hidden");
+    // 4. Actualizar estado Online/Offline
+    const { data: session } = await sbClient.from("sessions").select("is_active").eq("user_id", pinnedFriendId).eq("is_active", true).maybeSingle();
 
-    try {
-        // 1. Obtener el nombre del amigo fijado desde la tabla de perfiles
-        const { data: friend } = await sbClient
-            .from("users_profiles")
-            .select("username")
-            .eq("id", pinnedFriendId)
-            .maybeSingle();
-
-        if (friend && pinnedNameLabel) {
-            pinnedNameLabel.innerText = friend.username;
-        }
-
-        // 2. Verificar si tiene una sesión activa en la tabla 'sessions'
-        const { data: activeSession } = await sbClient
-            .from("sessions")
-            .select("is_active")
-            .eq("user_id", pinnedFriendId)
-            .eq("is_active", true)
-            .maybeSingle();
-
-        if (activeSession) {
-            if (statusText) {
-                statusText.innerText = "ONLINE";
-                statusText.classList.add("text-indigo-400");
-                statusText.classList.remove("text-transparent"); // Para que se vea bien el gradiente o color
-            }
-            if (statusGlow) {
-                statusGlow.classList.replace("bg-rose-500/20", "bg-indigo-500/40");
-            }
-        } else {
-            if (statusText) {
-                statusText.innerText = "OFFLINE";
-                statusText.classList.remove("text-indigo-400");
-            }
-            if (statusGlow) {
-                statusGlow.classList.replace("bg-indigo-500/40", "bg-rose-500/20");
-            }
-        }
-
-        // 3. Cargar las barritas de las últimas sesiones (la función que ya tienes en friends.js)
-        if (typeof loadAppStatusData === "function") {
-            loadAppStatusData();
-        }
-
-    } catch (err) {
-        console.error("Error al actualizar la vista:", err);
+    if (statusText) {
+      statusText.innerText = session ? "ONLINE" : "OFFLINE";
+      // Cambiar color opcionalmente
+      statusText.style.color = session ? "#818cf8" : "white";
     }
+
+    // 5. Cargar la lista de sesiones de abajo
+    loadAppStatusData();
+  } catch (err) {
+    console.error("Error en updateInicioView:", err);
+  }
 }
